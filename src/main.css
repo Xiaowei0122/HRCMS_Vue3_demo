@@ -1,0 +1,25 @@
+/* 覆盖 Vite 的默认居中诅咒 */
+#app {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important; /* 关键：Vite 默认可能是 flex */
+}
+
+/* 确保 html 和 body 也是铺满的 */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 修正左侧菜单图标过大的问题 */
+.el-menu-item .el-icon {
+  vertical-align: middle;
+  margin-right: 5px;
+  width: 24px;
+  text-align: center;
+}
