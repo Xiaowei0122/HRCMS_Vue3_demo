@@ -5,7 +5,7 @@
         <div class="header-filter">
           <div class="left">
             <el-radio-group v-model="filterStatus" size="default">
-              <el-radio-button label="all">全部线索</el-radio-button>
+              <el-radio-button label="all">全部需求单</el-radio-button>
               <el-radio-button label="pending">待处理</el-radio-button>
               <el-radio-button label="following">跟进中</el-radio-button>
               <el-radio-button label="completed">已成交</el-radio-button>
