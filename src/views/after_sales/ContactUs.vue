@@ -38,7 +38,7 @@
             <div class="card-footer">
               <el-button link type="primary" @click="editEngineer(item)">编辑信息</el-button>
               <el-divider direction="vertical" />
-              <el-button link type="danger" @click="removeEngineer(item.id)">取消展示</el-button>
+              <el-button link type="danger" @click="removeEngineer(item)">取消展示</el-button>
             </div>
           </el-card>
         </el-col>
@@ -80,35 +80,35 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Plus, Phone } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  getContactEngineers, createContactEngineer,
+  updateContactEngineer, deleteContactEngineer
+} from '@/api/modules/contact'
 
 const dialogVisible = ref(false)
 const isEdit = ref(false)
+const loading = ref(false)
 
-const engineerList = ref([
-  {
-    id: 1,
-    name: '张工程师',
-    phone: '138-0013-8000',
-    avatar: 'https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png',
-    skills: ['打印机', '复印机','装订机','电脑维修'],
-    showOnMobile: true,
-    desc: '资深设备工程师'
-  },
-  {
-    id: 2,
-    name: '李工程师',
-    phone: '139-1234-5678',
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-    skills: ['监控维护', '网络调试','设备安装','系统安装','电脑维修'],
-    showOnMobile: false,
-    desc: '弱电智能化专家'
-  }
-])
+const engineerList = ref([])
 
 const form = ref({ name: '', phone: '', skills: [], avatar: '', desc: '' })
+
+const fetchEngineers = async () => {
+  loading.value = true
+  try {
+    const res = await getContactEngineers()
+    if (Array.isArray(res)) {
+      engineerList.value = res
+    } else {
+      engineerList.value = res.records || []
+    }
+  } catch { /* ignore */ } finally {
+    loading.value = false
+  }
+}
 
 const openAddDialog = () => {
   isEdit.value = false
@@ -122,18 +122,32 @@ const editEngineer = (item) => {
   dialogVisible.value = true
 }
 
-const saveEngineer = () => {
-  ElMessage.success('配置已同步至公众号展示端')
-  dialogVisible.value = false
+const saveEngineer = async () => {
+  try {
+    if (isEdit.value) {
+      await updateContactEngineer(form.value.id, { ...form.value })
+    } else {
+      await createContactEngineer({ ...form.value })
+    }
+    ElMessage.success('配置已同步至公众号展示端')
+    dialogVisible.value = false
+    fetchEngineers()
+  } catch { /* ignore */ }
 }
 
-const removeEngineer = (id) => {
-  ElMessageBox.confirm('确定要从公众号展示页面移除该工程师吗？（不会删除人员账号）', '提示', {
-    type: 'warning'
-  }).then(() => {
-    ElMessage.success('已下线展示')
-  })
+const removeEngineer = (item) => {
+  ElMessageBox.confirm('确定要从公众号展示页面移除该工程师吗？', '提示', { type: 'warning' }).then(async () => {
+    try {
+      await deleteContactEngineer(item.id)
+      ElMessage.success('已下线展示')
+      fetchEngineers()
+    } catch { /* ignore */ }
+  }).catch(() => {})
 }
+
+onMounted(() => {
+  fetchEngineers()
+})
 </script>
 
 <style scoped>

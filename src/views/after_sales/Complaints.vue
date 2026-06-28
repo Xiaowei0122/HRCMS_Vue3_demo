@@ -111,9 +111,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { Search, Warning, List, Timer, Opportunity } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getComplaintList, processComplaint, closeComplaint as apiCloseComplaint } from '@/api/modules/complaints'
 
 const activeTab = ref('all')
 const search = ref('')
@@ -129,26 +130,25 @@ const statCards = [
   { title: '客户整体满意度', value: '96.8', unit: '%', color: '#E6A23C', icon: Opportunity },
 ]
 
-// 模拟数据
-const complaints = ref([
-  { 
-    id: 1, date: '2026-04-07 10:00', customer: '腾讯滨海大厦 B座', target: '张工', 
-    category: '服务态度', priority: '紧急', status: '待处理', 
-    content: '用户反馈工程师在机房作业时未穿戴防护服，且沟通语气生硬，希望能进行内部教育。'
-  },
-  { 
-    id: 2, date: '2026-04-06 15:30', customer: '兴业银行科技部', target: '李工', 
-    category: '技术差错', priority: '普通', status: '处理中', 
-    content: '设备维修后第二天再次报修相同故障，质疑第一次维修的彻底性。'
-  }
-])
+const complaints = ref([])
+
+const fetchComplaints = async () => {
+  try {
+    const res = await getComplaintList({ page: 1, size: 50 })
+    if (Array.isArray(res)) {
+      complaints.value = res
+    } else {
+      complaints.value = res.records || []
+    }
+  } catch { /* ignore */ }
+}
 
 const filteredData = computed(() => {
   return complaints.value.filter(item => {
-    const matchTab = activeTab.value === 'all' || 
+    const matchTab = activeTab.value === 'all' ||
                     (activeTab.value === 'pending' && item.status === '待处理') ||
                     (activeTab.value === 'solving' && item.status === '处理中');
-    const matchSearch = item.customer.includes(search.value) || item.target.includes(search.value);
+    const matchSearch = item.customer?.includes(search.value) || item.target?.includes(search.value);
     return matchTab && matchSearch;
   })
 })
@@ -164,23 +164,32 @@ const handleProcess = (row) => {
   dialogVisible.value = true
 }
 
-const confirmProcess = () => {
+const confirmProcess = async () => {
   if (!processForm.value.type) return ElMessage.warning('请选择处理方案')
-  activeItem.value.status = '处理中'
-  activeItem.value.result = processForm.value.note
-  ElMessage.success('核实结果录入成功')
-  dialogVisible.value = false
+  try {
+    await processComplaint(activeItem.value.id, { type: processForm.value.type, note: processForm.value.note })
+    ElMessage.success('核实结果录入成功')
+    dialogVisible.value = false
+    fetchComplaints()
+  } catch { /* ignore */ }
 }
 
 const closeComplaint = (row) => {
   ElMessageBox.confirm('结案后该投诉记录将无法修改方案，确认完成？', '确认结案', {
     type: 'warning',
     confirmButtonText: '立即结案'
-  }).then(() => {
-    row.status = '已关闭'
-    ElMessage.success('已结案归档')
-  })
+  }).then(async () => {
+    try {
+      await apiCloseComplaint(row.id)
+      ElMessage.success('已结案归档')
+      fetchComplaints()
+    } catch { /* ignore */ }
+  }).catch(() => {})
 }
+
+onMounted(() => {
+  fetchComplaints()
+})
 </script>
 
 <style scoped>

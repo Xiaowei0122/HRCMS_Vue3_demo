@@ -30,7 +30,7 @@
             @keyup.enter="handleLogin"
           />
         </el-form-item>
-        
+
         <div class="extra-actions">
           <el-checkbox v-model="rememberMe">记住账号</el-checkbox>
           <el-button link type="primary">忘记密码？</el-button>
@@ -48,7 +48,7 @@
           </el-button>
         </el-form-item>
       </el-form>
-      
+
       <div class="login-footer">
         <p>© 2026 西安鸿瑞办公设备有限公司 版权所有</p>
         <p>技术支持：鸿瑞办公技术支持部 | v0.6</p>
@@ -61,6 +61,8 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElNotification } from 'element-plus'
+import { login as apiLogin } from '@/api/modules/auth'
+import { setToken, setUserInfo } from '@/utils/auth'
 
 const router = useRouter()
 const loginFormRef = ref(null)
@@ -68,11 +70,10 @@ const loading = ref(false)
 const rememberMe = ref(true)
 
 const loginForm = reactive({
-  username: 'admin', // 默认填入，方便测试
+  username: 'admin',
   password: ''
 })
 
-// 表单验证规则
 const rules = reactive({
   username: [
     { required: true, message: '请输入管理员账号', trigger: 'blur' },
@@ -84,39 +85,36 @@ const rules = reactive({
   ]
 })
 
-const handleLogin = () => {
-  loginFormRef.value.validate((valid) => {
-    if (valid) {
-      loading.value = true
-      
-      // 模拟请求后端
-      setTimeout(() => {
-        // 1. 模拟验证通过 (这里只做账号密码非空的简单判断)
-        if (loginForm.username === 'admin' && loginForm.password === '123456') {
-          // 2. 存储 Token (实际项目中是后端返回的真实 Token)
-          localStorage.setItem('admin_token', 'hr_token_demo_xyz_123')
-          
-          // 3. 成功提示
-          ElNotification({
-            title: '登录成功',
-            message: '欢迎回来，超级管理员！',
-            type: 'success',
-            duration: 2500
-          })
-          
-          // 4. 跳转到主页 (Dashboard)
-          router.push('/dashboard')
-        } else {
-          ElMessage.error('账号或密码错误 (测试账号:admin/123456)')
-        }
-        
-        loading.value = false
-      }, 1500)
-    } else {
-      ElMessage.warning('请完善登录信息')
-      return false
-    }
-  })
+const handleLogin = async () => {
+  const valid = await loginFormRef.value.validate().catch(() => false)
+  if (!valid) {
+    ElMessage.warning('请完善登录信息')
+    return
+  }
+
+  loading.value = true
+  try {
+    const res = await apiLogin({
+      username: loginForm.username,
+      password: loginForm.password
+    })
+    // res 已被拦截器解包：{ token, userInfo }
+    setToken(res.token)
+    setUserInfo(res.userInfo)
+
+    ElNotification({
+      title: '登录成功',
+      message: `欢迎回来，${res.userInfo?.realName || '管理员'}！`,
+      type: 'success',
+      duration: 2500
+    })
+
+    router.push('/dashboard')
+  } catch {
+    // 错误信息已由 request.js 拦截器统一处理
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -127,15 +125,14 @@ const handleLogin = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #0b1c31; /* 深蓝科技色背景 */
-  background-image: 
+  background-color: #0b1c31;
+  background-image:
     radial-gradient(circle at 10% 20%, rgba(20, 110, 240, 0.3) 0%, transparent 40%),
     radial-gradient(circle at 80% 80%, rgba(24, 200, 240, 0.2) 0%, transparent 40%);
   position: relative;
   overflow: hidden;
 }
 
-/* 装饰线条 */
 .background-decor {
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
@@ -145,12 +142,12 @@ const handleLogin = () => {
 
 .login-box {
   width: 480px;
-  background: rgba(255, 255, 255, 0.04); /* 玻璃拟态的核心：极低透明度背景 */
-  backdrop-filter: blur(15px);          /* 玻璃拟态的核心：毛玻璃模糊 */
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(15px);
   border-radius: 12px;
   padding: 50px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1); /* 淡淡的边框 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   z-index: 10;
 }
@@ -179,13 +176,13 @@ const handleLogin = () => {
 }
 
 .login-form :deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.08) !important; /* 输入框也做透明化 */
+  background: rgba(255, 255, 255, 0.08) !important;
   box-shadow: none !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 4px;
 }
 .login-form :deep(.el-input__inner) {
-  color: #fff !important; /* 输入文字改为白色 */
+  color: #fff !important;
 }
 .login-form :deep(.el-input__inner::placeholder) {
   color: #8d97a1 !important;
@@ -203,7 +200,7 @@ const handleLogin = () => {
 .login-btn {
   width: 100%;
   height: 46px;
-  background: linear-gradient(90deg, #409eff, #36d1dc); /* 渐变色按钮 */
+  background: linear-gradient(90deg, #409eff, #36d1dc);
   border: none;
   font-size: 16px;
   letter-spacing: 2px;

@@ -5,9 +5,9 @@
         <div class="product-header">
           <div class="left-group">
             <el-button-group>
-              <el-button :type="activeCat === 'all' ? 'primary' : ''" @click="activeCat = 'all'">全部设备</el-button>
-              <el-button :type="activeCat === 'color' ? 'primary' : ''" @click="activeCat = 'color'">彩色办公</el-button>
-              <el-button :type="activeCat === 'bw' ? 'primary' : ''" @click="activeCat = 'bw'">高效黑白</el-button>
+              <el-button :type="activeCat === 'all' ? 'primary' : ''" @click="switchCategory('all')">全部设备</el-button>
+              <el-button :type="activeCat === 'color' ? 'primary' : ''" @click="switchCategory('color')">彩色办公</el-button>
+              <el-button :type="activeCat === 'bw' ? 'primary' : ''" @click="switchCategory('bw')">高效黑白</el-button>
             </el-button-group>
           </div>
           <div class="right-group">
@@ -17,8 +17,8 @@
         </div>
       </template>
 
-      <el-row :gutter="20">
-        <el-col :span="6" v-for="(item, index) in productList" :key="index" style="margin-bottom: 20px">
+      <el-row :gutter="20" v-loading="loading">
+        <el-col :span="6" v-for="item in productList" :key="item.id" style="margin-bottom: 20px">
           <el-card :body-style="{ padding: '0px' }" class="product-item-card">
             <div class="image-wrapper">
               <el-image :src="item.img" fit="contain" style="width: 100%; height: 180px" />
@@ -39,7 +39,7 @@
               <div class="p-actions">
                 <el-button size="small" icon="Edit" circle @click="editProduct(item)"></el-button>
                 <el-button size="small" type="warning" icon="Star" circle></el-button>
-                <el-button size="small" type="danger" icon="Delete" circle></el-button>
+                <el-button size="small" type="danger" icon="Delete" circle @click="handleDelete(item)"></el-button>
               </div>
             </div>
           </el-card>
@@ -87,19 +87,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { getProductList, createProduct, updateProduct, deleteProduct } from '@/api/modules/products'
 
 const activeCat = ref('all')
 const dialogVisible = ref(false)
+const loading = ref(false)
+const isEdit = ref(false)
+const editingId = ref(null)
 const tempPrice = ref(299)
 const tempStock = ref(10)
+const total = ref(0)
+const query = reactive({ page: 1, size: 20, category: '', name: '' })
 
-const productList = ref([
-  { name: '理光 IM C3000', price: 299, speed: '30', function: '彩印/复印/扫描', stock: 15, img: 'https://picsum.photos/300/300?random=21' },
-  { name: '施乐 VersaLink C7020', price: 380, speed: '20', function: '高速彩印', stock: 8, img: 'https://picsum.photos/300/300?random=22' },
-  { name: '佳能 iR-ADV C3525', price: 450, speed: '25', function: '智能办公', stock: 0, img: 'https://picsum.photos/300/300?random=23' },
-  { name: '柯尼卡美能达 C226', price: 199, speed: '22', function: '黑白/彩色', stock: 20, img: 'https://picsum.photos/300/300?random=24' }
-])
+const productList = ref([])
 
 const techSpecs = ref([
   { attr: '打印分辨率', val: '1200 x 1200 dpi' },
@@ -108,7 +110,56 @@ const techSpecs = ref([
   { attr: '内存容量', val: '2GB + 320GB 硬盘' }
 ])
 
-const openProductModal = () => { dialogVisible.value = true }
+const fetchProducts = async () => {
+  loading.value = true
+  try {
+    const params = { page: query.page, size: query.size }
+    if (activeCat.value !== 'all') params.category = activeCat.value
+    if (query.name) params.name = query.name
+    const res = await getProductList(params)
+    if (Array.isArray(res)) {
+      productList.value = res
+    } else {
+      productList.value = res.records || []
+      total.value = res.total || 0
+    }
+  } catch { /* ignore */ } finally {
+    loading.value = false
+  }
+}
+
+const switchCategory = (cat) => {
+  activeCat.value = cat
+  fetchProducts()
+}
+
+const openProductModal = () => {
+  isEdit.value = false
+  editingId.value = null
+  tempPrice.value = 299
+  tempStock.value = 10
+  dialogVisible.value = true
+}
+
+const editProduct = (item) => {
+  isEdit.value = true
+  editingId.value = item.id
+  tempPrice.value = item.price || 0
+  tempStock.value = item.stock || 0
+  dialogVisible.value = true
+}
+
+const handleDelete = async (item) => {
+  try {
+    await deleteProduct(item.id)
+    ElMessage.success('产品已删除')
+    fetchProducts()
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  fetchProducts()
+})
 </script>
 
 <style scoped>

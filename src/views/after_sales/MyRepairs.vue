@@ -9,7 +9,7 @@
       </template>
 
       <!-- 简洁的列表 -->
-      <el-table :data="myOrders" style="width: 100%" border stripe>
+      <el-table :data="myOrders" style="width: 100%" border stripe v-loading="loading">
         <el-table-column prop="orderNo" label="工单编号" width="140" />
         <el-table-column prop="company" label="报修内容" min-width="150" />
         <el-table-column label="负责工程师" width="120">
@@ -34,6 +34,17 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="pagination-wrapper" style="margin-top: 16px; display: flex; justify-content: flex-end;">
+        <el-pagination
+          background
+          layout="total, prev, pager, next"
+          :total="total"
+          v-model:current-page="query.page"
+          v-model:page-size="query.size"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
 
     <!-- 详情弹窗：侧重进度追踪 -->
@@ -73,24 +84,45 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { useTaskStore } from '../../store/taskStore'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { getMyRepairs, getRepairDetail } from '@/api/modules/repairs'
 
-const taskStore = useTaskStore()
+const router = useRouter()
 const detailsVisible = ref(false)
 const activeOrder = ref(null)
+const myOrders = ref([])
+const loading = ref(false)
+const total = ref(0)
+const query = ref({ page: 1, size: 10 })
 
-// 模拟当前登录角色：管理员（如果是业务员，此处应从用户模块获取）
-const currentUser = '管理员' 
+const fetchMyRepairs = async () => {
+  loading.value = true
+  try {
+    const res = await getMyRepairs({ page: query.value.page, size: query.value.size })
+    if (Array.isArray(res)) {
+      myOrders.value = res
+    } else {
+      myOrders.value = res.records || []
+      total.value = res.total || 0
+    }
+  } catch {
+    // 错误已由拦截器统一处理
+  } finally {
+    loading.value = false
+  }
+}
 
-// 仅展示当前用户报修的单子
-const myOrders = computed(() => {
-  return taskStore.allTasks.filter(t => t.type === 'business');
-})
-
-const viewProgress = (row) => {
-  activeOrder.value = row
-  detailsVisible.value = true
+const viewProgress = async (row) => {
+  try {
+    const detail = await getRepairDetail(row.id)
+    activeOrder.value = detail
+    detailsVisible.value = true
+  } catch {
+    // 兜底使用列表数据
+    activeOrder.value = row
+    detailsVisible.value = true
+  }
 }
 
 const getStatusTag = (status) => {
@@ -99,14 +131,23 @@ const getStatusTag = (status) => {
   return 'info'
 }
 
-const getCurrentNode = (task) => {
-  if (!task.progress || task.progress.length === 0) return '已提交报修'
-  return task.progress[task.progress.length - 1].node
+const getCurrentNode = (row) => {
+  if (!row.progress || row.progress.length === 0) return '已提交报修'
+  return row.progress[row.progress.length - 1].node
 }
 
 const handleNewRepair = () => {
-  // 跳转或弹出报修表单
+  router.push('/after_sales/repair-apply')
 }
+
+const handlePageChange = (page) => {
+  query.value.page = page
+  fetchMyRepairs()
+}
+
+onMounted(() => {
+  fetchMyRepairs()
+})
 </script>
 
 <style scoped>

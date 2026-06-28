@@ -25,7 +25,7 @@
         <el-table-column prop="title" label="新闻标题" min-width="250" show-overflow-tooltip />
         <el-table-column prop="type" label="分类" width="120">
           <template #default="{row}">
-            <el-tag>{{ row.typeName }}</el-tag>
+            <el-tag>{{ typeNameMap[row.type] || row.type }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="views" label="阅读量" width="100" align="center" />
@@ -37,11 +37,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="date" label="发布时间" width="180" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column label="操作" width="240" fixed="right">
           <template #default="scope">
-            <el-button link type="primary">编辑</el-button>
-            <el-button link type="warning">置顶</el-button>
-            <el-button link type="danger" @click="deleteNews(scope.$index)">删除</el-button>
+            <el-button link type="primary" @click="editNews(scope.row)">编辑</el-button>
+            <el-button link type="warning" @click="handlePin(scope.row)">置顶</el-button>
+            <el-button link type="success" @click="handlePublish(scope.row)">{{ scope.row.isPublished ? '下架' : '发布' }}</el-button>
+            <el-button link type="danger" @click="deleteNews(scope.row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -84,28 +85,105 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getNewsList, createNews, updateNews, deleteNews as apiDeleteNews, togglePinNews, publishNews } from '@/api/modules/news'
 
 const searchQuery = ref('')
 const typeFilter = ref('')
 const drawerVisible = ref(false)
-const newsForm = ref({ title: '', type: 'company', content: '' })
+const isEdit = ref(false)
+const editingId = ref(null)
+const loading = ref(false)
+const total = ref(0)
+const query = reactive({ page: 1, size: 10 })
 
-const newsList = ref([
-  { title: '鸿瑞办公正式通过ISO质量管理体系认证', typeName: '公司新闻', cover: 'https://picsum.photos/200/100?random=10', views: 1240, isPublished: true, date: '2024-04-01 10:00' },
-  { title: '2024款理光彩色复印机租赁优惠活动开启', typeName: '行业资讯', cover: 'https://picsum.photos/200/100?random=11', views: 856, isPublished: true, date: '2024-03-28 14:30' },
-  { title: '如何通过数字化办公降低30%的纸张成本？', typeName: '技术支持', cover: 'https://picsum.photos/200/100?random=12', views: 432, isPublished: false, date: '2024-03-25 09:15' }
-])
+const newsList = ref([])
+const newsForm = reactive({ title: '', type: 'company', content: '', cover: '' })
 
-const openDrawer = () => { drawerVisible.value = true }
-const saveNews = () => { ElMessage.success('文章已进入审核流程'); drawerVisible.value = false }
-const deleteNews = (index) => {
-  ElMessageBox.confirm('确定删除该文章吗？').then(() => {
-    newsList.value.splice(index, 1)
-    ElMessage.success('已删除')
-  })
+const typeNameMap = { company: '公司新闻', industry: '行业资讯', tech: '技术支持' }
+
+const fetchNews = async () => {
+  loading.value = true
+  try {
+    const params = { page: query.page, size: query.size }
+    if (typeFilter.value) params.type = typeFilter.value
+    if (searchQuery.value) params.title = searchQuery.value
+    const res = await getNewsList(params)
+    if (Array.isArray(res)) {
+      newsList.value = res
+    } else {
+      newsList.value = res.records || []
+      total.value = res.total || 0
+    }
+  } catch { /* ignore */ } finally {
+    loading.value = false
+  }
 }
+
+const openDrawer = () => {
+  isEdit.value = false
+  editingId.value = null
+  newsForm.title = ''
+  newsForm.type = 'company'
+  newsForm.content = ''
+  newsForm.cover = ''
+  drawerVisible.value = true
+}
+
+const editNews = (row) => {
+  isEdit.value = true
+  editingId.value = row.id
+  newsForm.title = row.title || ''
+  newsForm.type = row.type || 'company'
+  newsForm.content = row.content || ''
+  newsForm.cover = row.cover || ''
+  drawerVisible.value = true
+}
+
+const saveNews = async () => {
+  try {
+    if (isEdit.value) {
+      await updateNews(editingId.value, { ...newsForm })
+      ElMessage.success('文章已更新')
+    } else {
+      await createNews({ ...newsForm })
+      ElMessage.success('文章已发布')
+    }
+    drawerVisible.value = false
+    fetchNews()
+  } catch { /* ignore */ }
+}
+
+const deleteNews = (row) => {
+  ElMessageBox.confirm('确定删除该文章吗？').then(async () => {
+    try {
+      await apiDeleteNews(row.id)
+      ElMessage.success('已删除')
+      fetchNews()
+    } catch { /* ignore */ }
+  }).catch(() => {})
+}
+
+const handlePin = async (row) => {
+  try {
+    await togglePinNews(row.id)
+    ElMessage.success('置顶状态已切换')
+    fetchNews()
+  } catch { /* ignore */ }
+}
+
+const handlePublish = async (row) => {
+  try {
+    await publishNews(row.id)
+    ElMessage.success('发布状态已切换')
+    fetchNews()
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  fetchNews()
+})
 </script>
 
 <style scoped>

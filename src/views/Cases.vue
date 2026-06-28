@@ -75,48 +75,74 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getBrandList, createBrand, updateBrand, deleteBrand } from '@/api/modules/cases'
+import { getCaseList, createCase, updateCase, deleteCase } from '@/api/modules/cases'
 
 const activeTab = ref('brands')
 const searchCase = ref('')
+const loading = ref(false)
+const dialogVisible = ref(false)
+const editingItem = ref(null)
+const formType = ref('brand') // 'brand' | 'case'
 
-// 品牌数据
-const brandList = ref([
-  { name: '理光 (Ricoh)', logo: 'https://cdn.worldvectorlogo.com/logos/ricoh-logo.svg', level: '核心代理商', url: 'https://www.ricoh.com.cn' },
-  { name: '施乐 (Fuji Xerox)', logo: 'https://cdn.worldvectorlogo.com/logos/fuji-xerox.svg', level: '战略合作伙伴', url: 'https://www.fujifilm.com' },
-  { name: '佳能 (Canon)', logo: 'https://cdn.worldvectorlogo.com/logos/canon-1.svg', level: '特约经销商', url: 'https://www.canon.com.cn' }
-])
+const brandList = ref([])
+const caseList = ref([])
 
-// 案例数据
-const caseList = ref([
-  { 
-    client: '西安某大型国有建筑集团', 
-    industry: '建筑业', 
-    device: '理光 IM C3000 x 12台', 
-    mode: '全包租赁服务', 
-    summary: '解决客户多部门分散打印、耗材管理混乱问题，月节省成本约25%。',
-    date: '2024-03' 
-  },
-  { 
-    client: '高新区某外语学校', 
-    industry: '教育行业', 
-    device: '施乐 高速数码复合机 x 5台', 
-    mode: '按张计费模式', 
-    summary: '针对学校试卷打印量大的特性，提供高可靠性维护方案。',
-    date: '2023-12' 
-  },
-  { 
-    client: '某知名设计研究院', 
-    industry: '设计/传媒', 
-    device: '佳能 彩色宽幅绘图仪', 
-    mode: '设备采购+维保', 
-    summary: '满足高精度图纸输出需求，提供24小时上门响应服务。',
-    date: '2024-01' 
-  }
-])
+const fetchBrands = async () => {
+  try {
+    const res = await getBrandList()
+    if (Array.isArray(res)) {
+      brandList.value = res
+    } else {
+      brandList.value = res.records || []
+    }
+  } catch { /* ignore */ }
+}
+
+const fetchCases = async () => {
+  try {
+    const res = await getCaseList({ page: 1, size: 50 })
+    if (Array.isArray(res)) {
+      caseList.value = res
+    } else {
+      caseList.value = res.records || []
+    }
+  } catch { /* ignore */ }
+}
+
+// 当切换到案例Tab时加载数据
+const handleTabChange = (tab) => {
+  activeTab.value = tab
+  if (tab === 'brands') fetchBrands()
+  if (tab === 'cases') fetchCases()
+}
+
+const deleteBrandItem = async (item) => {
+  try {
+    await ElMessageBox.confirm('确定删除该品牌？')
+    await deleteBrand(item.id)
+    ElMessage.success('已删除')
+    fetchBrands()
+  } catch { /* ignore */ }
+}
+
+const deleteCaseItem = async (item) => {
+  try {
+    await ElMessageBox.confirm('确定删除该案例？')
+    await deleteCase(item.id)
+    ElMessage.success('已删除')
+    fetchCases()
+  } catch { /* ignore */ }
+}
 
 const addBrand = () => { /* 弹出新增品牌表单 */ }
 const addCase = () => { /* 弹出发布案例表单 */ }
+
+onMounted(() => {
+  fetchBrands()
+})
 </script>
 
 <style scoped>

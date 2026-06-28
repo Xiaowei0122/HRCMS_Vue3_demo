@@ -10,12 +10,13 @@
               <el-button type="primary" size="small" icon="Plus" @click="addRole">新增</el-button>
             </div>
           </template>
-          <el-table 
-            :data="roleList" 
-            highlight-current-row 
+          <el-table
+            :data="roleList"
+            highlight-current-row
             @current-change="handleRoleSelect"
             style="width: 100%"
             class="role-table"
+            v-loading="rolesLoading"
           >
             <el-table-column prop="roleName" label="角色名称">
               <template #default="{ row }">
@@ -46,25 +47,26 @@
                 </el-tag>
                 <span v-else style="color: #909399; font-size: 14px">请选择左侧角色</span>
               </span>
-              <el-button 
-                type="success" 
-                size="default" 
-                :disabled="!activeRole.roleName" 
+              <el-button
+                type="success"
+                size="default"
+                :disabled="!activeRole.roleName"
                 :icon="Check"
+                :loading="savingPerms"
                 @click="savePermissions"
               >保存权限</el-button>
             </div>
           </template>
-          
+
           <div v-if="activeRole.roleName" class="tree-wrapper">
-            <el-alert 
-              title="配置说明：勾选主菜单将自动开启该分类下的所有子功能权限。" 
-              type="warning" 
-              :closable="false" 
-              show-icon 
-              style="margin-bottom: 20px" 
+            <el-alert
+              title="配置说明：勾选主菜单将自动开启该分类下的所有子功能权限。"
+              type="warning"
+              :closable="false"
+              show-icon
+              style="margin-bottom: 20px"
             />
-            
+
             <el-tree
               ref="treeRef"
               :data="menuData"
@@ -90,25 +92,21 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { 
-  Plus, Check, User, Monitor, Document, Headset, 
-  Box, ChatDotSquare, Trophy, Briefcase, Setting 
+import {
+  Plus, Check, User, Monitor, Document, Headset,
+  Box, ChatDotSquare, Trophy, Briefcase, Setting
 } from '@element-plus/icons-vue'
+import { getRoleList, saveRolePermissions, getPermissionTree } from '@/api/modules/roles'
 
 const treeRef = ref(null)
 const activeRole = ref({})
+const roleList = ref([])
+const rolesLoading = ref(false)
+const savingPerms = ref(false)
 
-// 1. 同步最新的角色数据 (增加 permissions 初始值)
-const roleList = ref([
-  { roleName: '超级管理员', code: 'admin', permissions: [1, 2, 3, 31, 32, 33, 34, 35, 36, 4, 5, 6, 7, 8, 9, 91, 92] },
-  { roleName: '业务部(报修员)', code: 'business', permissions: [1, 3, 31, 32] },
-  { roleName: '商务部(信息维护)', code: 'business_support', permissions: [1, 3, 36, 4, 5, 6, 7, 8] },
-  { roleName: '工程部(工程师)', code: 'engineer', permissions: [1, 3, 32, 33, 34] }
-])
-
-// 2. 同步最新的菜单树结构 (对应你的截图)
+// 菜单树数据
 const menuData = [
   { id: 1, label: '系统概览', icon: Monitor },
   { id: 2, label: '需求单管理', icon: Document },
@@ -141,11 +139,34 @@ const menuData = [
   }
 ]
 
+const fetchRoles = async () => {
+  rolesLoading.value = true
+  try {
+    const res = await getRoleList()
+    roleList.value = Array.isArray(res) ? res : (res.records || [])
+  } catch {
+    // 错误已由拦截器统一处理
+  } finally {
+    rolesLoading.value = false
+  }
+}
+
+const fetchPermissionTree = async () => {
+  try {
+    const tree = await getPermissionTree()
+    if (tree && tree.length) {
+      // 如果后端返回了菜单树，使用后端数据
+      // 这里保留前端菜单树作为兜底
+    }
+  } catch {
+    // 菜单树使用前端默认数据
+  }
+}
+
 const handleRoleSelect = (row) => {
   if (!row) return
   activeRole.value = row
-  
-  // 必须使用 nextTick，确保 Tree 组件已渲染完毕
+
   nextTick(() => {
     if (treeRef.value) {
       treeRef.value.setCheckedKeys(row.permissions || [])
@@ -153,16 +174,28 @@ const handleRoleSelect = (row) => {
   })
 }
 
-const savePermissions = () => {
+const savePermissions = async () => {
   const checkedKeys = treeRef.value.getCheckedKeys()
-  // 模拟保存逻辑
-  activeRole.value.permissions = checkedKeys
-  ElMessage.success(`角色 [${activeRole.value.roleName}] 权限更新成功！`)
+  savingPerms.value = true
+  try {
+    await saveRolePermissions(activeRole.value.id, checkedKeys)
+    activeRole.value.permissions = checkedKeys
+    ElMessage.success(`角色 [${activeRole.value.roleName}] 权限更新成功！`)
+  } catch {
+    // 错误已由拦截器统一处理
+  } finally {
+    savingPerms.value = false
+  }
 }
 
 const addRole = () => {
   ElMessage.info('触发新增角色弹窗')
 }
+
+onMounted(() => {
+  fetchRoles()
+  fetchPermissionTree()
+})
 </script>
 
 <style scoped>
@@ -170,21 +203,19 @@ const addRole = () => {
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .title-text { font-weight: bold; font-size: 16px; }
 
-.role-card, .perm-card { 
-  height: calc(100vh - 140px); 
+.role-card, .perm-card {
+  height: calc(100vh - 140px);
   border-radius: 8px;
 }
 
 .role-name-cell { display: flex; align-items: center; gap: 8px; }
 .tree-wrapper { padding: 10px; }
 
-/* 权限树样式美化 */
 .custom-tree-node { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .node-icon { font-size: 16px; color: #606266; }
 
 :deep(.el-tree-node__content) { height: 36px; border-radius: 4px; }
 :deep(.el-tree-node__content:hover) { background-color: #f0f7ff; }
 
-/* 解决高度溢出 */
 :deep(.el-card__body) { height: calc(100% - 60px); overflow-y: auto; }
 </style>

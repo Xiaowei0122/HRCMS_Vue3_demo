@@ -45,9 +45,9 @@
               <el-col :span="12">
                 <el-form-item label="紧急程度" prop="priority">
                   <el-select v-model="repairForm.priority" style="width: 100%">
-                    <el-option label="普通 (24小时内)" value="low" />
-                    <el-option label="紧急 (4小时内)" value="medium" />
-                    <el-option label="特急 (立即处理)" value="high" />
+                    <el-option label="普通 (24小时内)" value="普通" />
+                    <el-option label="紧急 (4小时内)" value="紧急" />
+                    <el-option label="特急 (立即处理)" value="特急" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -89,9 +89,12 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { EditPen } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { createRepair } from '@/api/modules/repairs'
 
+const router = useRouter()
 const formRef = ref(null)
 const submitting = ref(false)
 const successVisible = ref(false)
@@ -104,7 +107,7 @@ const repairForm = reactive({
   phone: '',
   address: '',
   date: new Date(),
-  priority: 'low',
+  priority: '普通',
   description: ''
 })
 
@@ -116,43 +119,42 @@ const rules = {
   description: [{ required: true, message: '请填写故障情况', trigger: 'blur' }]
 }
 
-// 核心逻辑：生成工单号 (HR + 年月日时分秒 + 5位随机数字)
-const generateOrderNumber = () => {
-  const now = new Date()
-  const dateStr = now.getFullYear().toString() +
-    (now.getMonth() + 1).toString().padStart(2, '0') +
-    now.getDate().toString().padStart(2, '0') +
-    now.getHours().toString().padStart(2, '0') +
-    now.getMinutes().toString().padStart(2, '0') +
-    now.getSeconds().toString().padStart(2, '0')
-  
-  const randomStr = Math.floor(Math.random() * 100000).toString().padStart(5, '0')
-  return `HR${dateStr}${randomStr}`
-}
-
 const submitRepair = async () => {
   if (!formRef.value) return
-  await formRef.value.validate((valid) => {
-    if (valid) {
-      submitting.value = true
-      // 模拟提交数据库
-      setTimeout(() => {
-        generatedOrderNo.value = generateOrderNumber()
-        submitting.value = false
-        successVisible.value = true
-        console.log('提交的数据：', { ...repairForm, orderNo: generatedOrderNo.value })
-      }, 800)
-    }
-  })
+  try {
+    await formRef.value.validate()
+  } catch {
+    ElMessage.warning('请完善报修信息')
+    return
+  }
+
+  submitting.value = true
+  try {
+    const res = await createRepair({
+      company: repairForm.company,
+      contact: repairForm.contact,
+      phone: repairForm.phone,
+      address: repairForm.address,
+      priority: repairForm.priority,
+      description: repairForm.description
+    })
+    generatedOrderNo.value = res.orderNo
+    successVisible.value = true
+  } catch {
+    // 错误已由拦截器统一处理
+  } finally {
+    submitting.value = false
+  }
 }
 
 const resetForm = () => {
   formRef.value.resetFields()
+  repairForm.priority = '普通'
 }
 
 const goToList = () => {
   successVisible.value = false
-  // 这里跳转到“我的报修”页面
+  router.push('/after_sales/my-repairs')
 }
 </script>
 

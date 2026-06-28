@@ -122,46 +122,63 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, LocationFilled, Location } from '@element-plus/icons-vue'
+import {
+  getGlobalConfig, saveBasicConfig, saveContactConfig, saveMapConfig,
+  getBanners, addBanner as apiAddBanner, updateBanner, deleteBanner
+} from '@/api/modules/config'
 
 const activeTab = ref('basic')
 
 const config = reactive({
-  basic: {
-    siteName: '西安鸿瑞办公设备有限公司',
-    logo: 'https://api.dicebear.com/7.x/initials/svg?seed=HR',
-    icp: '陕ICP备12345678号',
-    security: '陕公网安备 610100000000号'
-  },
-  banners: [
-    { url: 'https://picsum.photos/1200/600?random=1', title: '理光高端复印机租赁', link: '/products' },
-    { url: 'https://picsum.photos/1200/600?random=2', title: '数字化办公解决方案', link: '/cases' }
-  ],
-  contact: {
-    phone: '029-8822xxxx',
-    email: 'hr_office@163.com',
-    address: '西安市高新区嘉会巷1号'
-  },
-  map: {
-    provider: 'amap',
-    apiKey: '**********',
-    coordinate: '108.8943, 34.2356'
-  }
+  basic: { siteName: '', logo: '', icp: '', security: '' },
+  banners: [],
+  contact: { phone: '', email: '', address: '' },
+  map: { provider: '', apiKey: '', coordinate: '' }
 })
 
-const saveConfig = (type) => {
-  ElMessage({
-    message: `${type}保存成功，官网已同步更新`,
-    type: 'success',
-    duration: 2000
-  })
+const fetchConfig = async () => {
+  try {
+    const res = await getGlobalConfig()
+    if (res) {
+      if (res.basic) config.basic = { ...config.basic, ...res.basic }
+      if (res.banners) config.banners = res.banners
+      if (res.contact) config.contact = { ...config.contact, ...res.contact }
+      if (res.map) config.map = { ...config.map, ...res.map }
+    }
+  } catch { /* ignore */ }
 }
 
-const addBanner = () => {
-  config.banners.push({ url: 'https://picsum.photos/1200/600?random=' + Math.random(), title: '新活动海报', link: '' })
+const saveConfig = async (type) => {
+  try {
+    if (type === 'basic') await saveBasicConfig(config.basic)
+    else if (type === 'contact') await saveContactConfig(config.contact)
+    else if (type === 'map') await saveMapConfig(config.map)
+    ElMessage.success(`${type}保存成功，官网已同步更新`)
+  } catch { /* ignore */ }
 }
+
+const addBanner = async () => {
+  try {
+    const res = await apiAddBanner({ url: '', title: '新活动海报', link: '' })
+    config.banners.push(res || { _id: Date.now().toString(), url: '', title: '新活动海报', link: '' })
+    ElMessage.success('Banner 已添加')
+  } catch { /* ignore */ }
+}
+
+const handleDeleteBanner = async (banner, index) => {
+  try {
+    await deleteBanner(banner._id || banner.id)
+    config.banners.splice(index, 1)
+    ElMessage.success('Banner 已删除')
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  fetchConfig()
+})
 </script>
 
 <style scoped>

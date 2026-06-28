@@ -17,7 +17,7 @@
     <!-- 瀑布流/网格布局 -->
     <el-row :gutter="20">
       <el-col 
-        v-for="(item, index) in filteredList" 
+        v-for="item in filteredList" :key="item.id"
         :key="index" 
         :xs="12" :sm="8" :md="6" :lg="4"
         style="margin-bottom: 20px"
@@ -32,7 +32,8 @@
               lazy
             />
             <div class="mask">
-              <el-button type="danger" icon="Delete" circle @click="handleDelete(index)" />
+              <el-button type="primary" icon="Edit" circle @click="editHonor(item)" />
+              <el-button type="danger" icon="Delete" circle @click="handleDelete(item)" />
               <el-button type="primary" icon="Edit" circle @click="handleEdit(item)" />
             </div>
           </div>
@@ -82,24 +83,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getHonorList, createHonor, updateHonor, deleteHonor } from '@/api/modules/honors'
 
 const currentTab = ref('all')
 const dialogVisible = ref(false)
 const isEdit = ref(false)
+const editingId = ref(null)
+const loading = ref(false)
 
 const form = ref({ title: '', type: 'cert', url: '' })
 
-// 模拟数据
-const honorList = ref([
-  { title: '理光(Ricoh)年度优秀经销商', type: 'cert', url: 'https://picsum.photos/400/600?random=1', date: '2024-01' },
-  { title: '西安办公设备协会理事单位', type: 'cert', url: 'https://picsum.photos/400/550?random=2', date: '2023-11' },
-  { title: '公司十周年庆典合影', type: 'photo', url: 'https://picsum.photos/600/400?random=3', date: '2024-02' },
-  { title: 'AAA级信用企业证书', type: 'cert', url: 'https://picsum.photos/400/580?random=4', date: '2023-05' },
-  { title: '技术部售后服务培训', type: 'photo', url: 'https://picsum.photos/600/450?random=5', date: '2024-03' },
-  { title: '佳能授权维修中心', type: 'cert', url: 'https://picsum.photos/400/560?random=6', date: '2023-08' },
-])
+const honorList = ref([])
 
 // 过滤逻辑
 const filteredList = computed(() => {
@@ -107,23 +103,64 @@ const filteredList = computed(() => {
   return honorList.value.filter(item => item.type === currentTab.value)
 })
 
+const fetchHonors = async () => {
+  loading.value = true
+  try {
+    const params = { page: 1, size: 50 }
+    if (currentTab.value !== 'all') params.type = currentTab.value
+    const res = await getHonorList(params)
+    if (Array.isArray(res)) {
+      honorList.value = res
+    } else {
+      honorList.value = res.records || []
+    }
+  } catch { /* ignore */ } finally {
+    loading.value = false
+  }
+}
+
+watch(currentTab, () => { fetchHonors() })
+
 const openUpload = () => {
   isEdit.value = false
-  form.value = { title: '', type: 'cert' }
+  editingId.value = null
+  form.value = { title: '', type: 'cert', url: '' }
   dialogVisible.value = true
 }
 
-const handleSave = () => {
-  ElMessage.success('操作成功')
-  dialogVisible.value = false
+const editHonor = (item) => {
+  isEdit.value = true
+  editingId.value = item.id
+  form.value = { title: item.title || '', type: item.type || 'cert', url: item.url || '' }
+  dialogVisible.value = true
 }
 
-const handleDelete = (index) => {
-  ElMessageBox.confirm('确定要删除这张照片吗？').then(() => {
-    honorList.value.splice(index, 1)
-    ElMessage.success('已删除')
-  })
+const handleSave = async () => {
+  try {
+    if (isEdit.value) {
+      await updateHonor(editingId.value, { ...form.value })
+    } else {
+      await createHonor({ ...form.value })
+    }
+    ElMessage.success('操作成功')
+    dialogVisible.value = false
+    fetchHonors()
+  } catch { /* ignore */ }
 }
+
+const handleDelete = (item) => {
+  ElMessageBox.confirm('确定要删除这条记录吗？').then(async () => {
+    try {
+      await deleteHonor(item.id)
+      ElMessage.success('已删除')
+      fetchHonors()
+    } catch { /* ignore */ }
+  }).catch(() => {})
+}
+
+onMounted(() => {
+  fetchHonors()
+})
 </script>
 
 <style scoped>

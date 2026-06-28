@@ -135,7 +135,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ArrowLeft, ArrowRight, Plus, Download } from '@element-plus/icons-vue'
 import { useTaskStore } from '../../store/taskStore'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -143,12 +143,37 @@ import dayjs from 'dayjs'
 import * as XLSX from 'xlsx'
 
 const taskStore = useTaskStore()
-const selectedEngineer = ref('张工')
+const selectedEngineer = ref('')
 const currentMonday = ref(dayjs().startOf('week').add(1, 'day'))
 const drawerVisible = ref(false)
 const addDialogVisible = ref(false)
 const activeTask = ref(null)
 const addForm = ref({ type: 'business', company: '', date: '', timeSlot: '' })
+
+// 由选中的工程师名称反查 ID（用于 API 过滤）
+const selectedEngineerId = computed(() => {
+  const eng = taskStore.engineers.find(e => e.name === selectedEngineer.value)
+  return eng?.id || ''
+})
+
+// 初始加载 + 切换工程师时刷新排期
+const loadSchedule = async () => {
+  if (!selectedEngineerId.value) return
+  await taskStore.fetchSchedule({ engineerId: selectedEngineerId.value })
+}
+
+watch(selectedEngineer, () => {
+  loadSchedule()
+})
+
+onMounted(async () => {
+  await taskStore.fetchEngineers()
+  // 默认选中第一个工程师
+  if (taskStore.engineers.length && !selectedEngineer.value) {
+    selectedEngineer.value = taskStore.engineers[0].name
+  }
+  await loadSchedule()
+})
 
 const timeSlots = [
   { id: 'AM1', name: '上午 (早)', range: '08:30-10:00' },

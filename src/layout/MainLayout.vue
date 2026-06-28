@@ -120,7 +120,7 @@
         <div class="header-right">
           <el-dropdown>
             <span class="user-info">
-              管理员 <el-icon><ArrowDown /></el-icon>
+              {{ currentUser.realName }} <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
               <el-dropdown-menu>
@@ -145,19 +145,25 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { 
-  DataBoard, Setting, Printer, ChatLineRound, Medal, 
+import {
+  DataBoard, Setting, Printer, ChatLineRound, Medal,
   Suitcase, UserFilled, Management, User, Lock, DocumentCopy,
-  Expand, Fold, ArrowDown
+  Expand, Fold, ArrowDown, Service, EditPen, List, Files,
+  Calendar, ChatDotSquare, Location
 } from '@element-plus/icons-vue'
+import { clearAuth, getUserInfo } from '@/utils/auth'
 
 const isCollapse = ref(false)
 const router = useRouter()
 
+const currentUser = computed(() => {
+  return getUserInfo() || { realName: '管理员' }
+})
+
 const handleLogout = () => {
-  localStorage.removeItem('admin_token')
+  clearAuth()
   router.push('/login')
 }
 </script>

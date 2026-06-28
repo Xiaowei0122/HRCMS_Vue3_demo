@@ -4,11 +4,11 @@
       <template #header>
         <div class="header-filter">
           <div class="left">
-            <el-radio-group v-model="filterStatus" size="default">
+            <el-radio-group v-model="filterStatus" size="default" @change="handleFilterChange">
               <el-radio-button label="all">全部需求单</el-radio-button>
-              <el-radio-button label="pending">待处理</el-radio-button>
-              <el-radio-button label="following">跟进中</el-radio-button>
-              <el-radio-button label="completed">已成交</el-radio-button>
+              <el-radio-button label="待跟进">待处理</el-radio-button>
+              <el-radio-button label="跟进中">跟进中</el-radio-button>
+              <el-radio-button label="已成交">已成交</el-radio-button>
             </el-radio-group>
           </div>
           <div class="right">
@@ -27,7 +27,7 @@
       </template>
 
       
-<el-table :data="filteredLeads" border stripe style="width: 100%">
+<el-table :data="leadsList" border stripe style="width: 100%" v-loading="loading">
         <el-table-column type="index" label="序号" width="60" align="center" />
         
         <el-table-column label="客户信息" width="200">
@@ -117,10 +117,10 @@
 <div class="status-change-section">
         <p class="section-title">修改线索状态</p>
         <el-radio-group v-model="currentLead.status" size="default">
-          <el-radio-button label="pending">待处理</el-radio-button>
-          <el-radio-button label="following">跟进中</el-radio-button>
-          <el-radio-button label="completed">已成交</el-radio-button>
-          <el-radio-button label="closed">无效/关闭</el-radio-button>
+          <el-radio-button label="待跟进">待处理</el-radio-button>
+          <el-radio-button label="跟进中">跟进中</el-radio-button>
+          <el-radio-button label="已成交">已成交</el-radio-button>
+          <el-radio-button label="已关闭">无效/关闭</el-radio-button>
         </el-radio-group>
       </div>
 
@@ -133,53 +133,74 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Phone } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getLeadList, updateLeadProgress } from '@/api/modules/leads'
 
 const filterStatus = ref('all')
 const dateRange = ref('')
 const detailVisible = ref(false)
 const currentLead = ref({})
+const loading = ref(false)
+const total = ref(0)
+const query = ref({ page: 1, size: 10 })
 
-// 模拟线索数据
-const leadsList = ref([
-  { id: 1, name: '张经理', phone: '138xxxx8888', category: '设备租赁', productName: '理光彩色复合机租赁', content: '在高新区办新办公室，需要租两台彩机，求报价。', status: 'pending', createTime: '2024-04-03 10:20', remark: '' },
-  { id: 2, name: '李老师', phone: '159xxxx2233', category: '设备采购', productName: '佳能绘图仪', content: '学校设计院需要采购一台宽幅绘图仪，需要上门安装服务。', status: 'following', createTime: '2024-04-02 15:45', remark: '已初步沟通，客户在走审批流程。' },
-  { id: 3, name: '王小姐', phone: '133xxxx9900', category: '售后维修', productName: '施乐复印机维修', content: '机器报代码E001，请尽快安排技术员。', status: 'completed', createTime: '2024-04-01 09:10', remark: '已成交。' }
-])
+const leadsList = ref([])
 
-// 状态映射表（用于颜色和文字）
+// 状态映射表
 const getStatusMap = (status) => {
   const map = {
-    pending: { label: '待处理', type: 'danger' },   // 红色
-    following: { label: '跟进中', type: 'primary' }, // 蓝色
-    completed: { label: '已成交', type: 'success' }, // 绿色
-    closed: { label: '已关闭', type: 'info' }       // 灰色
+    '待跟进': { label: '待处理', type: 'danger' },
+    '跟进中': { label: '跟进中', type: 'primary' },
+    '已成交': { label: '已成交', type: 'success' },
+    '已关闭': { label: '已关闭', type: 'info' }
   }
-  return map[status] || map.pending
+  return map[status] || { label: status || '未知', type: 'info' }
 }
 
-const filteredLeads = computed(() => {
-  if (filterStatus.value === 'all') return leadsList.value
-  return leadsList.value.filter(item => item.status === filterStatus.value)
-})
+const fetchLeads = async () => {
+  loading.value = true
+  try {
+    const params = { page: query.value.page, size: query.value.size }
+    if (filterStatus.value !== 'all') params.status = filterStatus.value
+    const res = await getLeadList(params)
+    if (Array.isArray(res)) {
+      leadsList.value = res
+    } else {
+      leadsList.value = res.records || []
+      total.value = res.total || 0
+    }
+  } catch { /* ignore */ } finally {
+    loading.value = false
+  }
+}
+
+const handleFilterChange = () => {
+  query.value.page = 1
+  fetchLeads()
+}
 
 const viewDetail = (row) => {
-  currentLead.value = { ...row } // 浅拷贝，防止直接修改表格数据
+  currentLead.value = { ...row }
   detailVisible.value = true
 }
 
-const saveProgress = () => {
-  // 实际项目中这里会调用API保存remark和status
-  // 这里仅做模拟：找到原数据并更新
-  const index = leadsList.value.findIndex(item => item.id === currentLead.value.id)
-  if (index !== -1) {
-    leadsList.value[index] = { ...currentLead.value }
-  }
-  ElMessage.success('跟进记录及状态已保存')
-  detailVisible.value = false
+const saveProgress = async () => {
+  try {
+    await updateLeadProgress(currentLead.value.id, {
+      status: currentLead.value.status,
+      remark: currentLead.value.remark || ''
+    })
+    ElMessage.success('跟进记录及状态已保存')
+    detailVisible.value = false
+    fetchLeads()
+  } catch { /* ignore */ }
 }
+
+onMounted(() => {
+  fetchLeads()
+})
 </script>
 
 <style scoped>

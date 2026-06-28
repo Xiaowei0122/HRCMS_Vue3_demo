@@ -16,16 +16,17 @@
       <!-- 工具栏 -->
       <div class="toolbar">
         <div class="left-group">
-          <el-input 
-            v-model="searchQuery" 
-            placeholder="搜索单位/工单号/联系人" 
+          <el-input
+            v-model="searchQuery"
+            placeholder="搜索单位/工单号/联系人"
             class="search-input"
             clearable
+            @keyup.enter="handleSearch"
           >
             <template #prefix><el-icon><Search /></el-icon></template>
           </el-input>
           
-          <el-radio-group v-model="filterStatus" class="status-filter">
+          <el-radio-group v-model="filterStatus" class="status-filter" @change="handleStatusFilter">
             <el-radio-button label="全部" />
             <el-radio-button label="待接单" />
             <el-radio-button label="处理中" />
@@ -39,7 +40,7 @@
       </div>
 
       <!-- 数据表格 -->
-      <el-table :data="filteredData" stripe style="width: 100%" v-loading="loading">
+      <el-table :data="repairList" stripe style="width: 100%" v-loading="loading">
         <el-table-column prop="orderNo" label="工单编号" width="150" fixed />
         <el-table-column prop="company" label="报修单位" min-width="180" show-overflow-tooltip />
         
@@ -71,16 +72,23 @@
 
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="scope">
-            <el-button link type="primary">详情</el-button>
+            <el-button link type="primary" @click="viewDetail(scope.row)">详情</el-button>
             <el-divider direction="vertical" />
-            <el-button link type="success" v-if="scope.row.status === '待接单'">指派</el-button>
-            <el-button link type="warning" v-else>催办</el-button>
+            <el-button link type="success" v-if="scope.row.status === '待接单'" @click="openAssignDialog(scope.row)">指派</el-button>
+            <el-button link type="warning" v-else @click="viewDetail(scope.row)">催办</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <div class="pagination-container">
-        <el-pagination background layout="total, prev, pager, next" :total="mockData.length" />
+        <el-pagination
+          background
+          layout="total, prev, pager, next"
+          :total="total"
+          v-model:current-page="query.page"
+          v-model:page-size="query.size"
+          @current-change="handlePageChange"
+        />
       </div>
     </el-card>
 
@@ -167,40 +175,105 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 4. 指派工程师弹窗 -->
+    <el-dialog
+      v-model="assignVisible"
+      title="指派工程师"
+      width="500px"
+      destroy-on-close
+      append-to-body
+    >
+      <div v-if="assigningRepair" class="assign-info">
+        <el-descriptions :column="1" border size="small">
+          <el-descriptions-item label="工单号">{{ assigningRepair.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="报修单位">{{ assigningRepair.company }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+
+      <el-divider content-position="left">选择工程师</el-divider>
+
+      <div class="engineer-list">
+        <div
+          v-for="eng in engineers"
+          :key="eng.id"
+          class="engineer-option"
+          :class="{ selected: selectedEngineerId === eng.id }"
+          @click="selectedEngineerId = eng.id"
+        >
+          <div class="eng-avatar">{{ eng.name?.[0] || '工' }}</div>
+          <div class="eng-info">
+            <div class="eng-name">{{ eng.name }}</div>
+            <div class="eng-detail">{{ eng.phone || '' }} · {{ eng.team || '工号未分组' }}</div>
+          </div>
+          <el-icon v-if="selectedEngineerId === eng.id" color="#409eff" :size="20"><CircleCheck /></el-icon>
+        </div>
+      </div>
+
+      <el-empty v-if="!engineers.length" description="暂无可派工程师，请先在「联系我们」中添加" />
+
+      <el-divider content-position="left">预约时间</el-divider>
+      <el-select v-model="selectedTimeSlot" style="width: 100%">
+        <el-option v-for="opt in timeSlotOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+      </el-select>
+
+      <template #footer>
+        <el-button @click="assignVisible = false">取消</el-button>
+        <el-button type="primary" :loading="assignLoading" @click="confirmAssign">
+          确认指派
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
-import { 
-  Search, Plus, Bell, Pointer, Tools, CircleCheck, Warning, InfoFilled 
+import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import {
+  Search, Plus, Bell, Pointer, Tools, CircleCheck, Warning, InfoFilled, Check
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { getRepairList, getRepairStats, createRepair, getEngineerList, assignRepair } from '@/api/modules/repairs'
+
+const router = useRouter()
 
 // --- 状态变量 ---
 const dialogVisible = ref(false)
 const loading = ref(false)
 const submitting = ref(false)
 const searchQuery = ref('')
-const filterStatus = ref('全部')
+const filterStatus = ref('')
 
-// --- 统计看板数据 ---
-const stats = [
-  { label: '待接单', value: 12, type: 'danger', icon: Bell },
-  { label: '处理中', value: 8, type: 'primary', icon: Pointer },
-  { label: '待备件', value: 3, type: 'warning', icon: Tools },
-  { label: '今日完成', value: 25, type: 'success', icon: CircleCheck },
-  { label: '待处理投诉', value: 1, type: 'info', icon: Warning }
+// --- 指派工程师弹窗 ---
+const assignVisible = ref(false)
+const assignLoading = ref(false)
+const assigningRepair = ref(null)
+const engineers = ref([])
+const selectedEngineerId = ref('')
+const selectedTimeSlot = ref('全天')
+
+const timeSlotOptions = [
+  { label: '全天', value: '全天' },
+  { label: '上午 (早) 08:30-10:00', value: '上午 (早)' },
+  { label: '上午 (晚) 10:00-11:50', value: '上午 (晚)' },
+  { label: '下午 (早) 13:30-15:00', value: '下午 (早)' },
+  { label: '下午 (中) 15:00-16:30', value: '下午 (中)' },
+  { label: '下午 (晚) 16:30-18:00', value: '下午 (晚)' },
 ]
 
-// --- 模拟表格数据 ---
-const mockData = ref([
-  { id: 1, orderNo: 'HR260403001', company: '兴业银行科技部', contact: '张经理', priority: '特急', engineer: '', status: '待接单', createTime: '2026-04-03 09:15' },
-  { id: 2, orderNo: 'HR260403002', company: '腾讯滨海大厦 B座', contact: '李小姐', priority: '紧急', engineer: '王小工', status: '处理中', createTime: '2026-04-03 10:20' },
-  { id: 3, orderNo: 'HR260403003', company: '鸿瑞大厦3F会议室', contact: '物业王', priority: '普通', engineer: '陈技术', status: '待备件', createTime: '2026-04-02 15:40' },
-  { id: 4, orderNo: 'HR260403004', company: '平安保险总部中心', contact: '孙先生', priority: '特急', engineer: '', status: '待接单', createTime: '2026-04-03 11:10' },
-  { id: 5, orderNo: 'HR260403005', company: '顺丰速运网点', contact: '周站长', priority: '紧急', engineer: '陈技术', status: '处理中', createTime: '2026-04-03 13:05' },
+// --- 统计看板数据 ---
+const stats = ref([
+  { label: '待接单', value: 0, type: 'danger', icon: Bell },
+  { label: '处理中', value: 0, type: 'primary', icon: Pointer },
+  { label: '已完成', value: 0, type: 'success', icon: CircleCheck },
+  { label: '全部工单', value: 0, type: 'info', icon: Warning }
 ])
+
+// --- 真实表格数据 ---
+const repairList = ref([])
+const total = ref(0)
+const query = reactive({ page: 1, size: 10 })
 
 // --- 报修表单数据 ---
 const repairForm = reactive({
@@ -214,16 +287,6 @@ const repairForm = reactive({
   description: ''
 })
 
-// --- 逻辑计算 ---
-const filteredData = computed(() => {
-  return mockData.value.filter(item => {
-    const s = searchQuery.value.toLowerCase()
-    const matchSearch = item.company.toLowerCase().includes(s) || item.orderNo.toLowerCase().includes(s)
-    const matchStatus = filterStatus.value === '全部' || item.status === filterStatus.value
-    return matchSearch && matchStatus
-  })
-})
-
 const getPriorityType = (p) => {
   if (p === '特急') return 'danger'
   if (p === '紧急') return 'warning'
@@ -235,24 +298,138 @@ const getStatusDotClass = (s) => {
   return map[s] || 'dot-info'
 }
 
+// --- 从后端获取数据 ---
+const fetchStats = async () => {
+  try {
+    const res = await getRepairStats()
+    if (res) {
+      stats.value[0].value = res.pending || 0
+      stats.value[1].value = res.processing || 0
+      stats.value[2].value = res.completed || 0
+      stats.value[3].value = res.total || 0
+    }
+  } catch { /* ignore */ }
+}
+
+const fetchRepairList = async () => {
+  loading.value = true
+  try {
+    const params = { page: query.page, size: query.size }
+    if (filterStatus.value) params.status = filterStatus.value
+    if (searchQuery.value) params.company = searchQuery.value
+    const res = await getRepairList(params)
+    if (Array.isArray(res)) {
+      repairList.value = res
+    } else {
+      repairList.value = res.records || []
+      total.value = res.total || 0
+    }
+  } catch { /* ignore */ } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => {
+  query.page = 1
+  fetchRepairList()
+}
+
+const handleStatusFilter = (val) => {
+  filterStatus.value = val === '全部' ? '' : val
+  query.page = 1
+  fetchRepairList()
+}
+
+const handlePageChange = (page) => {
+  query.page = page
+  fetchRepairList()
+}
+
 // --- 操作方法 ---
 const openAddDialog = () => {
-  repairForm.orderNo = 'HR' + Date.now().toString().slice(-8)
+  repairForm.orderNo = '系统自动生成'
+  repairForm.company = ''
+  repairForm.contact = ''
+  repairForm.phone = ''
+  repairForm.address = ''
+  repairForm.priority = '普通'
+  repairForm.description = ''
   dialogVisible.value = true
 }
 
-const submitRepair = () => {
+const submitRepair = async () => {
   if (!repairForm.company || !repairForm.contact || !repairForm.phone) {
     ElMessage.error('请填写完整的必填信息')
     return
   }
   submitting.value = true
-  setTimeout(() => {
-    submitting.value = false
-    dialogVisible.value = false
+  try {
+    await createRepair({
+      company: repairForm.company,
+      contact: repairForm.contact,
+      phone: repairForm.phone,
+      address: repairForm.address,
+      priority: repairForm.priority,
+      description: repairForm.description
+    })
     ElMessage.success('工单录入成功！已自动加入任务池。')
-  }, 1000)
+    dialogVisible.value = false
+    fetchRepairList()
+    fetchStats()
+  } catch {
+    // 错误已由拦截器统一处理
+  } finally {
+    submitting.value = false
+  }
 }
+
+const viewDetail = (row) => {
+  router.push(`/after_sales/repair-detail/${row.id}`)
+}
+
+// --- 指派工程师 ---
+const openAssignDialog = async (row) => {
+  assigningRepair.value = row
+  selectedEngineerId.value = ''
+  selectedTimeSlot.value = '全天'
+  assignVisible.value = true
+  // 拉取工程师列表
+  try {
+    const res = await getEngineerList()
+    engineers.value = Array.isArray(res) ? res : (res.records || [])
+  } catch {
+    engineers.value = []
+  }
+}
+
+const confirmAssign = async () => {
+  if (!selectedEngineerId.value) {
+    ElMessage.warning('请选择一位工程师')
+    return
+  }
+  const eng = engineers.value.find(e => e.id === selectedEngineerId.value)
+  assignLoading.value = true
+  try {
+    await assignRepair(assigningRepair.value.id, {
+      engineerId: selectedEngineerId.value,
+      engineerName: eng?.name || '',
+      timeSlot: selectedTimeSlot.value
+    })
+    ElMessage.success(`已指派给 ${eng?.name || '工程师'}`)
+    assignVisible.value = false
+    fetchRepairList()
+    fetchStats()
+  } catch {
+    // 错误已由拦截器统一处理
+  } finally {
+    assignLoading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchStats()
+  fetchRepairList()
+})
 </script>
 
 <style scoped>
@@ -321,4 +498,29 @@ const submitRepair = () => {
   font-weight: bold;
   padding-bottom: 4px;
 }
+
+/* 指派工程师弹窗 */
+.assign-info { margin-bottom: 10px; }
+.engineer-list { width: 100%; display: flex; flex-direction: column; gap: 8px; max-height: 350px; overflow-y: auto; }
+.engineer-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  gap: 12px;
+}
+.engineer-option:hover { border-color: #409eff; background: #f5faff; }
+.engineer-option.selected { border-color: #409eff; background: #ecf5ff; box-shadow: 0 0 0 2px rgba(64,158,255,0.15); }
+.eng-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, #409eff, #36d1dc);
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: bold; flex-shrink: 0;
+}
+.eng-info { flex: 1; }
+.eng-info .eng-name { font-size: 15px; font-weight: 600; color: #303133; }
+.eng-info .eng-detail { font-size: 12px; color: #909399; margin-top: 4px; }
 </style>

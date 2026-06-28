@@ -113,3 +113,65 @@ HRCMS_VUE3/
       组件通信：优化了角色切换时的 nextTick 渲染机制，确保 Tree 组件状态与后端数据同步。
       动态路由预览：在 Dashboard 中集成了常用业务模块的快捷跳转。
       数据结构：定义了标准的 id 映射体系，为下一步前后端联调打下基础。
+
+## Ver 0.6 — 前后端联调 · 报修调度闭环 (2026-06-29)
+
+版本定位：从纯前端 Demo 演进为全栈可运行系统，核心业务链路打通。
+
+---
+
+### 🏗️ 后端服务 (Backend — 新增)
+
+- **技术栈**：FastAPI + MongoDB (Motor) + JWT 认证，运行于 `:8080`
+- **项目结构**：
+  ```
+  backend/
+  ├─ app/main.py              # 应用入口 (CORS、路由注册、生命周期)
+  ├─ app/core/                # 配置、依赖注入、统一响应、安全工具
+  ├─ app/routers/             # 16 个路由模块
+  │  ├─ auth.py               # 登录/注册/Token 签发
+  │  ├─ repairs.py            # 报修 CRUD + 指派 + 排期 + 工程师
+  │  ├─ contact.py            # 联系我们 (公众号展示工程师)
+  │  ├─ dashboard.py          # 仪表盘统计
+  │  ├─ users.py / roles.py   # 用户与权限管理
+  │  ├─ news.py / products.py / cases.py / honors.py / brands.py
+  │  ├─ leads.py / complaints.py / config.py / logs.py / upload.py
+  ├─ app/database/            # MongoDB 连接 + 种子数据
+  ├─ app/models/              # Pydantic 模型定义
+  └─ app/services/            # 业务逻辑层
+  ```
+- **数据库**：MongoDB `hrcms`，含 `repairs`、`repair_schedule`、`engineers`、`users` 等集合
+- **环境配置**：`.env` / `.env.development` / `.env.production` 分离开发与生产配置
+
+### 🔌 前端 API 层 (新增)
+
+- **`src/api/`**：16 个 API 模块，覆盖全部后端路由
+- **`src/utils/request.js`**：Axios 实例封装，含请求拦截 (JWT Token 注入) 与响应拦截 (统一错误处理)
+- **`src/utils/auth.js`**：Token 存取、用户状态管理
+
+### 🔧 核心功能修复与增强
+
+- **报修指派联动排期** (根因修复)：修复 `assignRepair` API 参数双层嵌套 Bug → 指派后自动在 `repair_schedule` 集合创建排期记录
+- **工单状态实时同步**：指派后 status 从"待接单" → "处理中"，并在进度流中追加"已指派工程师"节点
+- **工程师排期接入真实数据**：`EngineerSchedule.vue` 从 mock 数据切换为 API 驱动 (`fetchEngineers` + `fetchSchedule`)，支持切换工程师自动刷新
+- **排期-工单数据关联**：`get_engineer_schedule` 通过 `repairId` 关联查询 repair 表，注入 `orderNo` 和 `progress`
+- **指派时间槽选择**：管理员指派时可选择具体时段（上午早/晚、下午早/中/晚、全天），替代硬编码"全天"
+
+### 🔄 全模块前后端对接
+
+- **Login.vue**：接真实登录接口，JWT Token 持久化
+- **Dashboard**：统计看板接入 `/repairs/stats` 等实时数据
+- **系统管理 (Users / Roles / Logs)**：用户 CRUD、角色权限、操作日志全部对接后端
+- **内容管理 (News / Products / Cases / Honors / Leads)**：列表、新增、编辑全部走 API
+- **售后模块 (MyRepairs / RepairApply / RepairDetail / Complaints)**：一站式报修流程完整贯通
+- **联系我们 (ContactUs)**：公众号展示工程师的增删改查
+
+### ⚙️ 工程化改进
+
+- **Vite 代理**：`vite.config.js` 配置 `/api` 代理到 `:8080`，本地开发无跨域问题
+- **路由优化**：`router/index.js` 重组模块分组，修复路由懒加载
+- **Store 重构**：`taskStore.js` 全面改为 API 驱动的 Pinia actions
+
+---
+
+> **最后更新**：2026-06-29
