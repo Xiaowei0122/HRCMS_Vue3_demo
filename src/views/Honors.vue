@@ -16,9 +16,8 @@
 
     <!-- 瀑布流/网格布局 -->
     <el-row :gutter="20">
-      <el-col 
-        v-for="item in filteredList" :key="item.id"
-        :key="index" 
+      <el-col
+        v-for="(item, index) in filteredList" :key="item.id"
         :xs="12" :sm="8" :md="6" :lg="4"
         style="margin-bottom: 20px"
       >
@@ -34,7 +33,6 @@
             <div class="mask">
               <el-button type="primary" icon="Edit" circle @click="editHonor(item)" />
               <el-button type="danger" icon="Delete" circle @click="handleDelete(item)" />
-              <el-button type="primary" icon="Edit" circle @click="handleEdit(item)" />
             </div>
           </div>
           <div class="info">
