@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import {
   getEngineerList, getEngineerSchedule,
   createScheduleEntry, deleteScheduleEntry,
-  createRepair, completeRepair as apiCompleteRepair
+  createRepair, assignRepair, completeRepair as apiCompleteRepair
 } from '@/api/modules/repairs'
 
 export const useTaskStore = defineStore('task', {
@@ -90,8 +90,23 @@ export const useTaskStore = defineStore('task', {
     async addTask(payload) {
       try {
         if (payload.type === 'business') {
-          // 业务报修走 createRepair 接口（由后端生成单号）
-          await createRepair(payload)
+          // ① 创建报修工单
+          const result = await createRepair({
+            company: payload.company,
+            contact: payload.contact || '',
+            phone: payload.phone || '',
+            address: payload.address || '',
+            priority: payload.priority || '普通',
+            description: payload.description || '',
+          })
+          // ② 指派工程师 → 自动同步排期表（repair_schedule）
+          if (result?.id) {
+            await assignRepair(result.id, {
+              engineerId: payload.engineerId,
+              engineerName: payload.engineer,
+              timeSlot: payload.timeSlot,
+            })
+          }
         } else {
           // 锁定时段走排期接口
           await createScheduleEntry(payload)

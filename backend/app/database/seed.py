@@ -144,6 +144,234 @@ async def run_seed(db):
              "desc": "5年智能硬件维修经验", "team": "维保一组"},
         ])
 
+    # ── 示例报修工单 + 排期联动（16 条工单 + 2 条锁定）────
+    if await db.repairs.count_documents({}) == 0:
+        from datetime import timedelta
+        now = datetime.now(timezone.utc)
+        today = now.date()
+        monday = today - timedelta(days=today.weekday())
+        dseq = now.strftime("%Y%m%d")
+
+        def _r(seq, company, contact, phone, addr, priority, desc, engineer, status, progress, createdBy, hours_ago=0):
+            return {
+                "orderNo": f"HR{dseq}{seq:03d}", "company": company, "contact": contact,
+                "phone": phone, "address": addr, "priority": priority, "description": desc,
+                "engineer": engineer, "engineerId": "",
+                "status": status, "progress": progress,
+                "createTime": (now - timedelta(hours=hours_ago)).strftime("%Y-%m-%d %H:%M:%S"),
+                "createdBy": createdBy,
+            }
+
+        # ────── 待接单 (4条) ──────
+        repairs_data = [
+            _r(1, "万科物业", "赵经理", "13900001111", "深圳市南山区万科云城3栋",
+               "紧急", "小区西门门禁控制器故障，无法刷卡开门，影响业主出入",
+               "", "待接单",
+               [{"node": "工单已创建，系统自动派发", "time": "09:30", "status": "done"}],
+               "admin", 2),
+            _r(2, "万达广场", "孙主管", "13900002222", "深圳市宝安区万达广场B2停车场",
+               "高", "停车场出口车牌识别一体机频繁误识别，抬杆延迟严重",
+               "", "待接单",
+               [{"node": "工单已创建，系统自动派发", "time": "10:15", "status": "done"}],
+               "zhangsan", 3),
+            _r(3, "华为基地", "周工", "13900003333", "深圳市龙岗区坂田华为基地F区",
+               "普通", "员工通道人脸识别终端网络偶发断连，需排查",
+               "", "待接单",
+               [{"node": "工单已创建，系统自动派发", "time": "11:00", "status": "done"}],
+               "admin", 4),
+            _r(4, "招商银行", "林行长", "13900008888", "深圳市福田区招商银行大厦18层",
+               "普通", "员工食堂消费POS机与门禁系统时间不同步",
+               "", "待接单",
+               [{"node": "工单已创建，系统自动派发", "time": "14:20", "status": "done"}],
+               "admin", 1),
+        ]
+
+        # ────── 处理中 (7条) ──────
+        repairs_data += [
+            _r(5, "龙湖地产", "吴经理", "13900004444", "深圳市福田区龙湖春江天玺营销中心",
+               "紧急", "营销中心人行通道闸机翼门不回弹，有安全隐患",
+               "李工", "处理中",
+               [{"node": "工单已创建，系统自动派发", "time": "08:30", "status": "done"},
+                {"node": "已指派工程师：李工", "time": "08:45", "status": "done"},
+                {"node": "工程师已到达现场，正在排查", "time": "09:30", "status": "doing"}],
+               "admin", 5),
+            _r(6, "平安大厦", "陈主任", "13900005555", "深圳市福田区益田路平安金融中心",
+               "高", "大厦12层指纹门禁读头损坏，需更换备件",
+               "王工", "处理中",
+               [{"node": "工单已创建，系统自动派发", "time": "13:30", "status": "done"},
+                {"node": "已指派工程师：王工", "time": "13:45", "status": "done"}],
+               "zhangsan", 6),
+            _r(7, "华润置地", "谢主管", "13900009999", "深圳市南山区华润万象天地B1",
+               "高", "停车场管理系统无法自动计费，需紧急修复",
+               "张工", "处理中",
+               [{"node": "工单已创建，系统自动派发", "time": "14:00", "status": "done"},
+                {"node": "已指派工程师：张工", "time": "14:10", "status": "done"},
+                {"node": "正在排查计费服务器日志", "time": "15:00", "status": "doing"}],
+               "admin", 7),
+            _r(8, "恒大中心", "郭经理", "13900001010", "深圳市罗湖区恒大中心A座",
+               "紧急", "监控室多路画面黑屏，安保系统瘫痪",
+               "李工", "处理中",
+               [{"node": "工单已创建，系统自动派发", "time": "09:00", "status": "done"},
+                {"node": "已指派工程师：李工", "time": "09:10", "status": "done"},
+                {"node": "已定位NVR主机硬盘故障，等待备件", "time": "10:30", "status": "doing"}],
+               "admin", 8),
+            _r(9, "中兴通讯", "唐工", "13900001112", "深圳市南山区科技园中兴研发大楼",
+               "普通", "办公区网络门禁控制器离线，影响3个楼层通行",
+               "李工", "处理中",
+               [{"node": "工单已创建，系统自动派发", "time": "08:00", "status": "done"},
+                {"node": "已指派工程师：李工", "time": "08:15", "status": "done"}],
+               "lisi", 9),
+            _r(10, "比亚迪", "冯工", "13900001113", "深圳市坪山区比亚迪研发中心",
+               "普通", "厂区侧门门禁电源模块频繁跳闸",
+               "张工", "处理中",
+               [{"node": "工单已创建，系统自动派发", "time": "10:00", "status": "done"},
+                {"node": "已指派工程师：张工", "time": "10:15", "status": "done"},
+                {"node": "正在更换电源模块", "time": "11:00", "status": "doing"}],
+               "admin", 10),
+            _r(11, "联想大厦", "曹主任", "13900001114", "深圳市南山区联想大厦7层",
+               "高", "人脸识别门禁一体机频繁重启，影响员工考勤",
+               "王工", "处理中",
+               [{"node": "工单已创建，系统自动派发", "time": "14:30", "status": "done"},
+                {"node": "已指派工程师：王工", "time": "14:45", "status": "done"},
+                {"node": "已确定固件版本问题，正在远程升级", "time": "15:30", "status": "doing"}],
+               "zhangsan", 11),
+        ]
+
+        # ────── 已完成 (5条) ──────
+        repairs_data += [
+            _r(12, "腾讯滨海大厦", "郑工", "13900006666", "深圳市南山区科技中一路腾讯滨海大厦",
+               "普通", "访客登记系统一体机触屏失灵",
+               "张工", "已完成",
+               [{"node": "工单已创建，系统自动派发", "time": "09:00", "status": "done"},
+                {"node": "已指派工程师：张工", "time": "09:10", "status": "done"},
+                {"node": "现场更换触摸屏模组", "time": "11:00", "status": "done"},
+                {"node": "测试验证通过，客户签字确认", "time": "11:30", "status": "done"},
+                {"node": "工单已处理完成，系统自动归档", "time": "11:45", "status": "done"}],
+               "admin", 48),
+            _r(13, "华侨城物业", "刘主管", "13900007777", "深圳市南山区华侨城纯水岸会所",
+               "普通", "会所侧门读卡器雨天进水导致短路，已临时断电",
+               "李工", "已完成",
+               [{"node": "工单已创建，系统自动派发", "time": "14:00", "status": "done"},
+                {"node": "已指派工程师：李工", "time": "14:15", "status": "done"},
+                {"node": "更换防水读卡器并重新布线", "time": "16:00", "status": "done"},
+                {"node": "工单已处理完成，系统自动归档", "time": "17:30", "status": "done"}],
+               "lisi", 72),
+            _r(14, "招商局大厦", "许经理", "13900001115", "深圳市南山区蛇口招商局广场",
+               "普通", "大厦访客管理系统软件版本过旧需升级",
+               "张工", "已完成",
+               [{"node": "工单已创建，系统自动派发", "time": "08:00", "status": "done"},
+                {"node": "已指派工程师：张工", "time": "08:10", "status": "done"},
+                {"node": "完成V4.2版本升级，数据库迁移成功", "time": "10:00", "status": "done"},
+                {"node": "工单已处理完成，系统自动归档", "time": "10:30", "status": "done"}],
+               "admin", 60),
+            _r(15, "大疆创新", "韩工", "13900001116", "深圳市南山区大疆天空之城",
+               "普通", "新装闸机联动测试，需工程师现场配合",
+               "王工", "已完成",
+               [{"node": "工单已创建，系统自动派发", "time": "13:00", "status": "done"},
+                {"node": "已指派工程师：王工", "time": "13:10", "status": "done"},
+                {"node": "配合完成闸机与消防系统联动测试", "time": "16:00", "status": "done"},
+                {"node": "工单已处理完成，系统自动归档", "time": "16:30", "status": "done"}],
+               "admin", 55),
+            _r(16, "小米科技", "罗经理", "13900001117", "深圳市南山区小米科技园",
+               "普通", "停车管理系统从旧服务器迁移至新服务器",
+               "王工", "已完成",
+               [{"node": "工单已创建，系统自动派发", "time": "09:00", "status": "done"},
+                {"node": "已指派工程师：王工", "time": "09:15", "status": "done"},
+                {"node": "数据迁移与系统切换完成", "time": "12:00", "status": "done"},
+                {"node": "工单已处理完成，系统自动归档", "time": "12:30", "status": "done"}],
+               "lisi", 68),
+        ]
+
+        # 批量插入并记住 ID
+        inserted = []
+        for rd in repairs_data:
+            r = await db.repairs.insert_one(rd)
+            inserted.append((rd, str(r.inserted_id)))
+
+        # ── 同步排期（14 条：12 条业务 + 2 条内部锁定）──
+        if await db.repair_schedule.count_documents({}) == 0:
+            eng_docs = await db.engineers.find({}).to_list(None)
+            eng_map = {e["name"]: str(e["_id"]) for e in eng_docs}
+
+            def _s(d, slot, eng, company, rid, status):
+                return {
+                    "engineerId": eng_map.get(eng, ""),
+                    "engineer": eng,
+                    "date": (monday + timedelta(days=d)).strftime("%Y-%m-%d"),
+                    "timeSlot": slot,
+                    "type": "business",
+                    "company": company,
+                    "repairId": rid,
+                    "status": status,
+                    "createdAt": datetime.now(timezone.utc),
+                }
+
+            sched = [
+                # ── 周一 Mon ──
+                _s(0, "AM1", "李工", "龙湖地产", inserted[4][1], "处理中"),
+                _s(0, "AM2", "张工", "招商局大厦", inserted[13][1], "已完成"),
+                _s(0, "PM1", "张工", "华润置地", inserted[6][1], "处理中"),
+
+                # ── 周二 Tue ──
+                _s(1, "AM1", "张工", "腾讯滨海大厦", inserted[11][1], "已完成"),
+                _s(1, "PM1", "王工", "平安大厦", inserted[5][1], "处理中"),
+                _s(1, "PM2", "王工", "大疆创新", inserted[14][1], "已完成"),
+
+                # ── 周三 Wed ──
+                _s(2, "AM1", "李工", "恒大中心", inserted[7][1], "处理中"),
+                _s(2, "PM1", "王工", "小米科技", inserted[15][1], "已完成"),
+                _s(2, "PM2", "张工", "比亚迪", inserted[9][1], "处理中"),
+
+                # ── 周四 Thu ──
+                _s(3, "AM2", "李工", "华侨城物业", inserted[12][1], "已完成"),
+                _s(3, "PM1", "李工", "中兴通讯", inserted[8][1], "处理中"),
+                _s(3, "PM3", "张工", "设备培训(内部-锁定)", "", "已完成"),
+
+                # ── 周五 Fri ──
+                _s(4, "AM2", "王工", "联想大厦", inserted[10][1], "处理中"),
+                _s(4, "PM3", "王工", "设备年检(内部-锁定)", "", "已完成"),
+            ]
+
+            # 内部任务标记为 break 类型（显示为锁定格）
+            for e in sched:
+                if "内部-锁定" in e["company"]:
+                    e["type"] = "break"
+
+            await db.repair_schedule.insert_many(sched)
+
+    # ── 示例投诉建议 ────────────────────────────────
+    if await db.complaints.count_documents({}) == 0:
+        await db.complaints.insert_many([
+            {
+                "date": "2025-01-10", "customer": "黄女士", "target": "维修工程师张工",
+                "category": "服务态度", "priority": "高",
+                "status": "待处理",
+                "content": "工程师上门维修时未穿工服，态度生硬，维修完成后未清理现场",
+                "result": "",
+            },
+            {
+                "date": "2025-01-12", "customer": "钱先生", "target": "客服热线",
+                "category": "响应速度", "priority": "紧急",
+                "status": "待处理",
+                "content": "门禁故障报修后超过4小时无人响应，业主群投诉激增",
+                "result": "",
+            },
+            {
+                "date": "2025-01-08", "customer": "杨经理", "target": "备件供应",
+                "category": "配件质量", "priority": "普通",
+                "status": "处理中",
+                "content": "更换的门禁控制板使用一周后再次故障，怀疑配件非原厂正品",
+                "result": "已协调供应商提供原厂批次证明，安排工程师二次上门",
+            },
+            {
+                "date": "2024-12-28", "customer": "马主任", "target": "道闸设备",
+                "category": "设备质量", "priority": "普通",
+                "status": "已解决",
+                "content": "新安装的车牌识别道闸频繁死机，需要每天手动重启",
+                "result": "确认为固件版本过旧导致，已升级至最新固件V4.2.1，连续运行7天无异常",
+            },
+        ])
+
     # ── 全局配置 ────────────────────────────────────
     if await db.global_config.count_documents({}) == 0:
         await db.global_config.insert_one({

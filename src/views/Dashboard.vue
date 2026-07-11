@@ -57,17 +57,11 @@
 
           <el-divider content-position="left">待办事项</el-divider>
           <ul class="todo-list">
-            <li class="todo-item danger">
-              <span class="dot"></span> 3 条投诉尚未核实回复
+            <li v-for="(item, idx) in todoItems" :key="idx" class="todo-item" :class="item.type">
+              <span class="dot"></span> {{ item.text }}
             </li>
-            <li class="todo-item warning">
-              <span class="dot"></span> 今日有 2 名工程师处于调休状态
-            </li>
-            <li class="todo-item info">
-              <span class="dot"></span> 官网产品详情昨日浏览量增长 25%
-            </li>
-            <li class="todo-item success">
-              <span class="dot"></span> 本月售后满意度维持在 98%
+            <li v-if="!todoItems.length" class="todo-item info">
+              <span class="dot"></span> 暂无待办事项
             </li>
           </ul>
         </el-card>
@@ -77,16 +71,53 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { getDashboardStats, getDashboardTodos } from '@/api/modules/dashboard'
 
 const chartType = ref('repair')
 
 const topStats = ref([
-  { title: '全站总访客', value: '1,284', tag: '实时', tagType: 'primary', trend: 12 },
-  { title: '新增报修单', value: '15', tag: '今日', tagType: 'danger', trend: 8 },
-  { title: '待处理需求', value: '5', tag: '紧急', tagType: 'warning', trend: -2 },
-  { title: '完工满意度', value: '98.5', tag: '本月', tagType: 'success', trend: 5 },
+  { title: '系统用户', value: 0, tag: '总量', tagType: 'primary', trend: 0 },
+  { title: '产品数量', value: 0, tag: '在售', tagType: 'info', trend: 0 },
+  { title: '报修工单', value: 0, tag: '全部', tagType: 'warning', trend: 0 },
+  { title: '待跟进线索', value: 0, tag: '紧急', tagType: 'danger', trend: 0 },
 ])
+
+const todoItems = ref([])
+
+const loadDashboard = async () => {
+  try {
+    const stats = await getDashboardStats()
+    if (stats) {
+      topStats.value[0].value = stats.userCount || 0
+      topStats.value[1].value = stats.productCount || 0
+      topStats.value[2].value = stats.repairCount || 0
+      topStats.value[3].value = stats.pendingLeads || 0
+    }
+  } catch { /* ignore */ }
+
+  try {
+    const todos = await getDashboardTodos()
+    if (todos) {
+      const items = []
+      if (todos.repairs) {
+        todos.repairs.forEach(r => {
+          items.push({ type: 'danger', text: `待处理工单: ${r.orderNo} (${r.company})` })
+        })
+      }
+      if (todos.leads) {
+        todos.leads.forEach(l => {
+          items.push({ type: 'warning', text: `待跟进线索: ${l.name} - ${l.category}` })
+        })
+      }
+      todoItems.value = items
+    }
+  } catch { /* ignore */ }
+}
+
+onMounted(() => {
+  loadDashboard()
+})
 </script>
 
 <style scoped>

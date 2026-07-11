@@ -273,7 +273,7 @@ const exportToExcel = () => {
 }
 
 const submitQuickAdd = () => {
-  taskStore.addTask({ ...addForm.value, engineer: selectedEngineer.value, status: '处理中' })
+  taskStore.addTask({ ...addForm.value, engineer: selectedEngineer.value, engineerId: selectedEngineerId.value, status: '处理中' })
   addDialogVisible.value = false
 }
 

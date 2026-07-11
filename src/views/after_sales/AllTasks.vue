@@ -255,11 +255,11 @@ const selectedTimeSlot = ref('全天')
 
 const timeSlotOptions = [
   { label: '全天', value: '全天' },
-  { label: '上午 (早) 08:30-10:00', value: '上午 (早)' },
-  { label: '上午 (晚) 10:00-11:50', value: '上午 (晚)' },
-  { label: '下午 (早) 13:30-15:00', value: '下午 (早)' },
-  { label: '下午 (中) 15:00-16:30', value: '下午 (中)' },
-  { label: '下午 (晚) 16:30-18:00', value: '下午 (晚)' },
+  { label: '上午 (早) 08:30-10:00', value: 'AM1' },
+  { label: '上午 (晚) 10:00-11:50', value: 'AM2' },
+  { label: '下午 (早) 13:30-15:00', value: 'PM1' },
+  { label: '下午 (中) 15:00-16:30', value: 'PM2' },
+  { label: '下午 (晚) 16:30-18:00', value: 'PM3' },
 ]
 
 // --- 统计看板数据 ---

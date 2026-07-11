@@ -174,4 +174,75 @@ HRCMS_VUE3/
 
 ---
 
-> **最后更新**：2026-06-29
+> **最后更新**：2026-07-11
+
+---
+
+## Ver 0.7 — 测试环境部署 · 售后数据闭环 · 一键启动 (2026-07-11)
+
+版本定位：测试环境完整可跑，售后模块数据与排期全面联动，开发体验优化。
+
+---
+
+### 🚀 一键启动脚本
+
+- **`start_dev.cmd`**：根目录双击启动，自动检查 MongoDB 连通性 → 启动后端 `:8080` → 启动前端 `:3000` → 打开浏览器
+- 纯 ASCII 英文编写，根除 Windows 中文编码导致的闪退和乱码问题
+- MongoDB 检测采用 .NET `TcpClient.Connect()`，无冗余输出
+
+### 🗄️ 测试数据库配置
+
+- **服务器**：`192.168.1.111:32769`（远程测试 MongoDB）
+- **数据库**：`hrcms_test`
+- **管理账号**：`admin` / `123456`
+- **`backend/reset_db.py`**：一键删除并重建数据库，便于重置测试环境
+- 种子数据在 FastAPI 启动时自动幂等执行（`run_seed` — 检查集合为空才插入）
+
+### 📊 Dashboard 数据真实化
+
+- **根因**：`Dashboard.vue` 的统计卡片和待办列表全部使用硬编码假数据（1,284 访客、15 报修单等）
+- **修复**：`onMounted` 生命周期调用 `getDashboardStats()` 和 `getDashboardTodos()` API
+- 四个统计卡片改为真实数据：系统用户 / 产品数量 / 报修工单 / 待跟进线索
+- 待办列表改为 `v-for` 动态渲染，空态显示"暂无待办事项"
+
+### 🔧 售后模块数据闭环
+
+- **种子数据**（`backend/app/database/seed.py`）：
+  - **16 条报修工单**：4 待接单 + 7 处理中 + 5 已完成，覆盖 10+ 企业客户场景
+  - **4 条投诉建议**：待处理/处理中/已解决各状态
+  - **14 条排期记录**：12 条业务工单 + 2 条内部锁定（培训/年检），均匀分布周一至周五
+  - 排期通过 `repairId` 与工单交叉关联，`GET /repairs/schedule` 联表查询注入 `orderNo` 和 `progress`
+
+- **排期矩阵覆盖**（三位工程师 x 五个工作日）：
+
+  | 工程师 | 周一 | 周二 | 周三 | 周四 | 周五 |
+  |---|---|---|---|---|---|
+  | 张工 | AM2✅ PM1🔵 | AM1✅ | PM2🔵 | PM3🔒 | — |
+  | 李工 | AM1🔵 | — | AM1🔵 | AM2✅ PM1🔵 | — |
+  | 王工 | — | PM1🔵 PM2✅ | PM1✅ | — | AM2🔵 PM3🔒 |
+
+### 🔗 工单-排期联动修复
+
+- **时间槽映射统一**：`AllTasks.vue` 指派弹窗的 `timeSlotOptions` 从中文标签（"上午 (早)"）改为排期表格 slot ID（`AM1`/`AM2`/`PM1`/`PM2`/`PM3`），确保指派后能在排期矩阵正确定位
+- **排期页快捷指派修复**：`taskStore.addTask` 的 business 分支改为两步调用 — `createRepair()` → `assignRepair()`，后者自动在 `repair_schedule` 集合创建排期条目并同步 `repairId` 关联
+- **`EngineerSchedule.vue`**：`submitQuickAdd` 新增传递 `engineerId`，确保排期条目与工程师正确绑定
+- **数据流转链路**：
+  ```
+  创建工单(待接单) → AllTasks指派 / 排期页快捷指派
+       → PATCH assignRepair → 更新repair + 插入repair_schedule
+       → GET /repairs/schedule → 联表查询 → 排期矩阵渲染
+  ```
+
+### 📋 数据库集合总览
+
+| 集合 | 数量 | 说明 |
+|---|---|---|
+| `repairs` | 16 | 报修工单（4 待接单 / 7 处理中 / 5 已完成） |
+| `repair_schedule` | 14 | 排期条目（12 业务 + 2 锁定） |
+| `complaints` | 4 | 投诉建议 |
+| `engineers` | 3 | 张工 / 李工 / 王工 |
+| `users` | 3 | admin / zhangsan / lisi |
+| `roles` | 4 | 超管 / 销售主管 / 技术支持 / 财务经理 |
+| 其他 | — | products(3), news(3), honors(3), brands(3), cases(2), leads(2) |
+
+---
