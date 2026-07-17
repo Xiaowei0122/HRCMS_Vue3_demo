@@ -42,26 +42,61 @@ async def run_seed(db):
             {"roleName": "财务经理", "code": "finance", "permissionIds": [1,2]},
         ])
 
-    # ── 管理员 ──────────────────────────────────────
+    # ── 管理员（CMS 共用）──────────────────────────
     if await db.users.count_documents({"username": "admin"}) == 0:
         await db.users.insert_one({
             "username": "admin",
             "realName": "系统管理员",
             "role": "超级管理员",
+            "userType": "admin",
             "phone": "13800000000",
             "hashedPassword": hash_password("123456"),
             "status": True,
             "lastLogin": None,
             "createdAt": datetime.now(timezone.utc),
         })
+    else:
+        # 已有 admin → 补 userType 字段
+        await db.users.update_one(
+            {"username": "admin", "userType": {"$exists": False}},
+            {"$set": {"userType": "admin"}},
+        )
+
+    # ── 小程序测试账号 ──────────────────────────────
+    test_accounts = [
+        {"username": "user", "realName": "普通用户", "role": "", "userType": "normal", "phone": "13800000101"},
+        {"username": "suser", "realName": "内部员工", "role": "销售主管", "userType": "special", "phone": "13800000102"},
+        {"username": "engineer", "realName": "维修工程师", "role": "技术支持", "userType": "engineer", "phone": "13800000103"},
+    ]
+    for acct in test_accounts:
+        if await db.users.count_documents({"username": acct["username"]}) == 0:
+            await db.users.insert_one({
+                "username": acct["username"],
+                "realName": acct["realName"],
+                "role": acct["role"],
+                "userType": acct["userType"],
+                "phone": acct["phone"],
+                "hashedPassword": hash_password("123456"),
+                "status": True,
+                "lastLogin": None,
+                "createdAt": datetime.now(timezone.utc),
+            })
+        else:
+            # 已有账号 → 补 userType
+            await db.users.update_one(
+                {"username": acct["username"], "userType": {"$exists": False}},
+                {"$set": {"userType": acct["userType"]}},
+            )
 
     # ── 示例用户 ────────────────────────────────────
     if await db.users.count_documents({"username": "zhangsan"}) == 0:
         await db.users.insert_many([
-            {"username": "zhangsan", "realName": "张三", "role": "销售主管", "phone": "13800000001",
+            {"username": "zhangsan", "realName": "张三", "role": "销售主管", "userType": "special",
+             "phone": "13800000001",
              "hashedPassword": hash_password("123456"), "status": True, "lastLogin": None,
              "createdAt": datetime.now(timezone.utc)},
-            {"username": "lisi", "realName": "李四", "role": "技术支持", "phone": "13800000002",
+            {"username": "lisi", "realName": "李四", "role": "技术支持", "userType": "engineer",
+             "phone": "13800000002",
              "hashedPassword": hash_password("123456"), "status": True, "lastLogin": None,
              "createdAt": datetime.now(timezone.utc)},
         ])

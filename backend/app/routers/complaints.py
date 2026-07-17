@@ -25,18 +25,48 @@ async def get_complaint_list(
     cursor = db.complaints.find(filter_q).skip((page - 1) * size).limit(size).sort("_id", -1)
     records = []
     async for c in cursor:
-        records.append({
-            "id": str(c["_id"]),
-            "date": c.get("date", ""),
-            "customer": c.get("customer", ""),
-            "target": c.get("target", ""),
-            "category": c.get("category", ""),
-            "priority": c.get("priority", "普通"),
-            "status": c.get("status", "待处理"),
-            "content": c.get("content", ""),
-            "result": c.get("result", ""),
-        })
+        records.append(_fmt(c))
     return success(paginate(records, total, page, size))
+
+
+@router.get("/my")
+async def get_my_complaints(
+    page: int = 1,
+    size: int = 10,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """我的投诉 — 按创建人筛选"""
+    uname = user.get("username", "")
+    filter_q = {"createdBy": uname}
+    total = await db.complaints.count_documents(filter_q)
+    cursor = db.complaints.find(filter_q).skip((page - 1) * size).limit(size).sort("_id", -1)
+    records = []
+    async for c in cursor:
+        records.append(_fmt(c))
+    return success(paginate(records, total, page, size))
+
+
+@router.post("")
+async def create_complaint(
+    body: dict = Body(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """提交投诉建议"""
+    doc = {
+        "type": body.get("type", ""),
+        "title": body.get("title", ""),
+        "content": body.get("content", ""),
+        "contact": body.get("contact", ""),
+        "status": "pending",
+        "reply": "",
+        "createTime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "createdBy": user.get("username", ""),
+        "customer": user.get("realName", user.get("username", "")),
+    }
+    result = await db.complaints.insert_one(doc)
+    return success({"id": str(result.inserted_id)}, "投诉提交成功")
 
 
 @router.get("/stats")
@@ -79,3 +109,18 @@ async def close_complaint(
         {"$set": {"status": "已解决", "result": result_text}},
     )
     return success(None, "投诉已关闭")
+
+
+def _fmt(c: dict) -> dict:
+    return {
+        "id": str(c["_id"]),
+        "type": c.get("type", c.get("category", "")),
+        "title": c.get("title", c.get("content", "")),
+        "content": c.get("content", ""),
+        "contact": c.get("contact", ""),
+        "status": c.get("status", "pending"),
+        "reply": c.get("reply", c.get("result", "")),
+        "createTime": c.get("createTime", c.get("date", "")),
+        "createdBy": c.get("createdBy", ""),
+    }
+

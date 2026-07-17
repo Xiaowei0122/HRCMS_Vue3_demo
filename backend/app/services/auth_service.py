@@ -4,6 +4,19 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.security import verify_password, hash_password, create_access_token
 
 
+def _get_user_type(user: dict) -> str:
+    """从用户 role 推导小程序端 userType"""
+    role = user.get("role", "")
+    if role == "超级管理员":
+        return "admin"
+    if role == "技术支持":
+        return "engineer"
+    # 销售主管、财务经理等内部员工 → special
+    if role in ("销售主管", "财务经理"):
+        return "special"
+    return "normal"
+
+
 async def authenticate(db: AsyncIOMotorDatabase, username: str, password: str) -> tuple[str, dict] | None:
     """验证用户，成功返回 (token, userInfo)，失败返回 None"""
     user = await db.users.find_one({"username": username})
@@ -26,6 +39,7 @@ async def authenticate(db: AsyncIOMotorDatabase, username: str, password: str) -
         "username": user["username"],
         "realName": user.get("realName", user["username"]),
         "role": user.get("role", ""),
+        "userType": user.get("userType") or _get_user_type(user),
         "avatar": user.get("avatar", ""),
         "phone": user.get("phone", ""),
     }

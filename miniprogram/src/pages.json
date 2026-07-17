@@ -1,0 +1,139 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^u-(.*)": "@dcloudio/uni-ui/lib/u-$1/u-$1.vue"
+    }
+  },
+  "pages": [
+    {
+      "path": "pages/public/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/public/register/index",
+      "style": {
+        "navigationBarTitleText": "注册",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/public/home/index",
+      "style": {
+        "navigationBarTitleText": "鸿瑞售后服务中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/repair-apply/index",
+      "style": {
+        "navigationBarTitleText": "一键报修"
+      }
+    },
+    {
+      "path": "pages/my-repairs/index",
+      "style": {
+        "navigationBarTitleText": "我的报修"
+      }
+    },
+    {
+      "path": "pages/repair-detail/index",
+      "style": {
+        "navigationBarTitleText": "工单详情"
+      }
+    },
+    {
+      "path": "pages/schedule/index",
+      "style": {
+        "navigationBarTitleText": "工程师期排"
+      }
+    },
+    {
+      "path": "pages/complaint/index",
+      "style": {
+        "navigationBarTitleText": "投诉建议"
+      }
+    },
+    {
+      "path": "pages/contact/index",
+      "style": {
+        "navigationBarTitleText": "联系我们"
+      }
+    },
+    {
+      "path": "pages/engineer/all-orders/index",
+      "style": {
+        "navigationBarTitleText": "所有工单"
+      }
+    },
+    {
+      "path": "pages/engineer/my-orders/index",
+      "style": {
+        "navigationBarTitleText": "我的工单"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "鸿瑞售后",
+    "navigationBarBackgroundColor": "#D32223",
+    "backgroundColor": "#F7F7F7",
+    "backgroundColorTop": "#D32223",
+    "backgroundColorBottom": "#F7F7F7"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#999999",
+    "selectedColor": "#D32223",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/repair-apply/index",
+        "text": "一键报修",
+        "iconPath": "static/tabbar/repair.png",
+        "selectedIconPath": "static/tabbar/repair-active.png"
+      },
+      {
+        "pagePath": "pages/my-repairs/index",
+        "text": "我的报修",
+        "iconPath": "static/tabbar/list.png",
+        "selectedIconPath": "static/tabbar/list-active.png"
+      },
+      {
+        "pagePath": "pages/schedule/index",
+        "text": "工程师期排",
+        "iconPath": "static/tabbar/calendar.png",
+        "selectedIconPath": "static/tabbar/calendar-active.png"
+      },
+      {
+        "pagePath": "pages/complaint/index",
+        "text": "投诉建议",
+        "iconPath": "static/tabbar/feedback.png",
+        "selectedIconPath": "static/tabbar/feedback-active.png"
+      },
+      {
+        "pagePath": "pages/contact/index",
+        "text": "联系我们",
+        "iconPath": "static/tabbar/contact.png",
+        "selectedIconPath": "static/tabbar/contact-active.png"
+      }
+    ]
+  },
+  "condition": {
+    "current": 0,
+    "list": [
+      {
+        "name": "登录页",
+        "path": "pages/public/login/index"
+      },
+      {
+        "name": "主页",
+        "path": "pages/public/home/index"
+      }
+    ]
+  }
+}

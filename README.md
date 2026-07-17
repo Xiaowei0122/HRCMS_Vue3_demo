@@ -186,7 +186,7 @@ HRCMS_VUE3/
 
 ### 🚀 一键启动脚本
 
-- **`start_dev.cmd`**：根目录双击启动，自动检查 MongoDB 连通性 → 启动后端 `:8080` → 启动前端 `:3000` → 打开浏览器
+- **`start_dev.cmd`**：根目录双击启动，自动检查 MongoDB 连通性 → 启动后端 `:8080` → 启动前端 `:5173` → 打开浏览器
 - 纯 ASCII 英文编写，根除 Windows 中文编码导致的闪退和乱码问题
 - MongoDB 检测采用 .NET `TcpClient.Connect()`，无冗余输出
 

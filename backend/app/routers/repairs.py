@@ -19,15 +19,23 @@ async def create_repair(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    """创建一个报修工单"""
+    """创建一个报修工单 — 兼容前端字段名"""
+    # 优先级映射 (前端 urgency → 后端 priority)
+    urgency_map = {"urgent": "紧急", "normal": "普通", "low": "不急"}
+    raw_urgency = body.get("urgency", "normal")
+    priority = body.get("priority") or urgency_map.get(raw_urgency, "普通")
+
     doc = {
         "orderNo": generate_order_no(),
         "company": body.get("company", ""),
-        "contact": body.get("contact", body.get("engineer", "")),
-        "phone": body.get("phone", ""),
+        "contact": body.get("contactName") or body.get("contact", ""),
+        "phone": body.get("contactPhone") or body.get("phone", ""),
         "address": body.get("address", ""),
-        "priority": body.get("priority", "普通"),
+        "deviceType": body.get("deviceType", ""),
+        "priority": priority,
+        "repairDate": body.get("repairDate", ""),
         "description": body.get("description", ""),
+        "images": body.get("images", []),
         "engineer": body.get("engineer", ""),
         "engineerId": body.get("engineerId", ""),
         "status": "待接单",
@@ -239,13 +247,54 @@ async def complete_repair(
     return success(None, "工单已完结")
 
 
-# ─── 工程师 ─────────────────────────────────────────
+@router.patch("/repairs/{repair_id}/transfer")
+async def transfer_repair(
+    repair_id: str,
+    body: dict = Body(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """转单 — 将工单转给另一位工程师"""
+    target_name = body.get("targetEngineerName", body.get("engineerName", ""))
+    target_id = body.get("targetEngineerId", body.get("engineerId", ""))
+
+    if not target_name:
+        return error(400, "请选择目标工程师")
+
+    repair = await db.repairs.find_one({"_id": ObjectId(repair_id)})
+    old_eng = repair.get("engineer", "未知") if repair else "未知"
+
+    await db.repairs.update_one(
+        {"_id": ObjectId(repair_id)},
+        {"$set": {"engineer": target_name, "engineerId": target_id}},
+    )
+    await _add_progress(db, repair_id, f"工单已从 [{old_eng}] 转派至 [{target_name}]", "done")
+    return success(None, "转单成功")
+
+
+# ─── 工程师（两个路由入口：/engineers 和 /repairs/engineers）─────
+
+@router.get("/repairs/engineers")
+async def get_repairs_engineers(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """获取工程师列表 — /repairs/engineers（前端 store 调用）"""
+    return await _get_engineers(db)
+
 
 @router.get("/engineers")
 async def get_engineer_list(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
+    """获取工程师列表 — /engineers"""
+    return await _get_engineers(db)
+
+
+# ─── 辅助函数 ───────────────────────────────────────
+
+async def _get_engineers(db: AsyncIOMotorDatabase):
     """获取工程师列表"""
     cursor = db.engineers.find({})
     records = []
@@ -262,8 +311,6 @@ async def get_engineer_list(
         })
     return success(records)
 
-
-# ─── 辅助函数 ───────────────────────────────────────
 
 async def _list_repairs(db: AsyncIOMotorDatabase, filter_q: dict, page: int, size: int) -> dict:
     total = await db.repairs.count_documents(filter_q)
@@ -282,11 +329,17 @@ def _format_repair(r: dict) -> dict:
         "contact": r.get("contact", ""),
         "phone": r.get("phone", ""),
         "address": r.get("address", ""),
+        "deviceType": r.get("deviceType", ""),
         "priority": r.get("priority", "普通"),
+        "repairDate": r.get("repairDate", ""),
+        "description": r.get("description", ""),
+        "images": r.get("images", []),
         "engineer": r.get("engineer", ""),
+        "engineerId": r.get("engineerId", ""),
         "status": r.get("status", "待接单"),
         "progress": r.get("progress", []),
         "createTime": r.get("createTime", ""),
+        "createdBy": r.get("createdBy", ""),
     }
 
 

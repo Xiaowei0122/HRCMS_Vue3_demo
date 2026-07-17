@@ -3,7 +3,7 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, get_optional_user
 from app.core.response import success
 
 router = APIRouter(prefix="/config", tags=["全局配置"])
@@ -12,16 +12,25 @@ router = APIRouter(prefix="/config", tags=["全局配置"])
 @router.get("")
 async def get_global_config(
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict | None = Depends(get_optional_user),
 ):
+    """获取全局配置 — 公开访问（小程序联系我们页面需要）"""
     config = await db.global_config.find_one({"_id": "global"})
     if not config:
         return success({})
+    basic = config.get("basic", {})
+    contact = config.get("contact", {})
+    # 对外提供平铺结构，方便小程序直接读取
     return success({
-        "basic": config.get("basic", {}),
-        "banners": config.get("banners", []),
-        "contact": config.get("contact", {}),
-        "map": config.get("map", {}),
+        "siteName": basic.get("siteName", "鸿瑞科技"),
+        "description": basic.get("seoDescription", ""),
+        "servicePhone": contact.get("phone", ""),
+        "businessPhone": contact.get("phone", ""),
+        "address": contact.get("address", ""),
+        "businessHours": contact.get("workingHours", ""),
+        "qrcode": basic.get("qrcode", ""),
+        "lat": str(config.get("map", {}).get("latitude", "")),
+        "lng": str(config.get("map", {}).get("longitude", "")),
     })
 
 
