@@ -1,51 +1,44 @@
-<!--
-  工单卡片组件 — 用于工单列表中的纵向卡片展示
--->
+<!--  工单卡片组件 v2 — 企业级设计  -->
 <template>
   <view class="order-card" @click="$emit('click', order)">
-    <!-- 卡片头部 -->
+    <!-- 头部：工程师 + 日期 -->
     <view class="card-head">
-      <view class="card-engineer" v-if="order.engineerName">
-        <text class="eng-icon">👨‍🔧</text>
-        <text class="eng-name">{{ order.engineerName }}</text>
+      <view class="card-engineer" v-if="order.engineer">
+        <SvgIcon name="hardHat" :size="16" color="#64748B" />
+        <text class="eng-name">{{ order.engineer }}</text>
       </view>
-      <view class="card-date">
-        <text class="date-text">{{ formatDate(order.createTime || order.assignTime) }}</text>
-      </view>
+      <view v-else />
+      <text class="date-text">{{ formatDate(order.createTime || order.assignTime) }}</text>
     </view>
 
-    <!-- 卡片主体 -->
+    <!-- 主体 -->
     <view class="card-body">
       <text class="card-company text-ellipsis">{{ order.company || '未填写单位' }}</text>
-      <text class="card-desc text-ellipsis-2" v-if="order.description">
-        {{ order.description }}
-      </text>
+      <text class="card-desc text-ellipsis-2" v-if="order.description">{{ order.description }}</text>
     </view>
 
-    <!-- 卡片底部 -->
+    <!-- 底部：状态 + 紧急程度 + 箭头 -->
     <view class="card-foot">
       <view class="foot-left">
-        <text class="status-badge" :class="'badge-' + (order.status || 'pending')">
-          {{ statusMap[order.status] || '待处理' }}
-        </text>
-        <text class="urgency-badge" :class="'urgency-' + (order.urgency || 'normal')">
-          {{ urgencyMap[order.urgency] || '一般' }}
-        </text>
+        <view class="status-badge" :class="'badge-' + statusKey(order.status)">
+          <view class="status-dot" :class="'dot-' + statusKey(order.status)" />
+          {{ order.status || '待接单' }}
+        </view>
+        <view class="urgency-badge" :class="'urgency-' + priorityKey(order.priority)">
+          {{ order.priority || '普通' }}
+        </view>
       </view>
-      <text class="foot-arrow">→</text>
+      <SvgIcon name="caretRight" :size="16" color="#0369A1" />
     </view>
   </view>
 </template>
 
 <script setup>
-defineProps({
-  order: { type: Object, default: () => ({}) }
-})
+import SvgIcon from './SvgIcon.vue'
+import { statusKey, priorityKey } from '@/utils/repair-status'
 
+defineProps({ order: { type: Object, default: () => ({}) } })
 defineEmits(['click'])
-
-const statusMap = { pending: '待处理', processing: '处理中', done: '已完成' }
-const urgencyMap = { urgent: '紧急', normal: '一般', low: '不急' }
 
 const formatDate = (t) => {
   if (!t) return ''
@@ -57,86 +50,63 @@ const formatDate = (t) => {
 
 <style lang="scss" scoped>
 .order-card {
-  background: #FFFFFF;
-  border-radius: 16rpx;
-  padding: 20rpx 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.04);
-  transition: all 0.3s;
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(2,6,23,0.05);
+  transition: all 0.25s ease;
+  border: 1px solid #F1F5F9;
 
   &:active {
-    transform: scale(0.98);
-    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
+    transform: scale(0.985);
+    box-shadow: 0 4px 12px rgba(2,6,23,0.08);
   }
 }
 
 .card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12rpx;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px;
 }
-
-.card-engineer {
-  display: flex;
-  align-items: center;
-}
-
-.eng-icon { font-size: 28rpx; margin-right: 6rpx; }
-.eng-name { font-size: 26rpx; color: #333; font-weight: 500; }
-
-.date-text { font-size: 22rpx; color: #999; }
+.card-engineer { display: flex; align-items: center; gap: 4px; }
+.eng-name { font-size: 13px; color: #334155; font-weight: 500; }
+.date-text { font-size: 11px; color: #94A3B8; }
 
 .card-company {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #222;
-  display: block;
-  margin-bottom: 6rpx;
+  font-size: 15px; font-weight: 700; color: #020617;
+  display: block; margin-bottom: 4px;
 }
-
 .card-desc {
-  font-size: 26rpx;
-  color: #666;
-  line-height: 1.5;
+  font-size: 13px; color: #64748B; line-height: 1.5;
 }
 
 .card-foot {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 12rpx;
-  padding-top: 12rpx;
-  border-top: 1px solid #F0F0F0;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid #F1F5F9;
 }
-
-.foot-left {
-  display: flex;
-  gap: 8rpx;
-}
+.foot-left { display: flex; gap: 6px; }
 
 .status-badge {
-  font-size: 22rpx;
-  padding: 4rpx 14rpx;
-  border-radius: 20rpx;
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600;
 
-  &.badge-pending    { background: #FFF3E0; color: #E65100; }
-  &.badge-processing { background: #E3F2FD; color: #1565C0; }
-  &.badge-done       { background: #E8F5E9; color: #2E7D32; }
+  &.badge-pending    { background: #FEF3C7; color: #92400E; }
+  &.badge-processing { background: #E0F2FE; color: #075985; }
+  &.badge-done       { background: #DCFCE7; color: #166534; }
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  &.dot-pending    { background: #D97706; }
+  &.dot-processing { background: #0369A1; }
+  &.dot-done       { background: #16A34A; }
 }
 
 .urgency-badge {
-  font-size: 22rpx;
-  padding: 4rpx 14rpx;
-  border-radius: 4rpx;
+  font-size: 11px; padding: 3px 10px; border-radius: 4px; font-weight: 600;
 
-  &.urgency-urgent { background: #FFEBEE; color: #C62828; }
-  &.urgency-normal { background: #FFF8E1; color: #F57F17; }
-  &.urgency-low    { background: #E8F5E9; color: #2E7D32; }
-}
-
-.foot-arrow {
-  font-size: 28rpx;
-  color: #D32223;
+  &.urgency-urgent { background: #FEE2E2; color: #991B1B; }
+  &.urgency-normal { background: #FEF3C7; color: #92400E; }
+  &.urgency-low    { background: #DCFCE7; color: #166534; }
 }
 </style>

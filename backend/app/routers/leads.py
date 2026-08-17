@@ -7,10 +7,10 @@ from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import openpyxl
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types
 from app.core.response import success, error, paginate
 
-router = APIRouter(prefix="/leads", tags=["线索管理"])
+router = APIRouter(prefix="/leads", tags=["线索管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
 
 
 @router.get("")
@@ -45,6 +45,37 @@ async def get_lead_list(
     return success(paginate(records, total, page, size))
 
 
+@router.get("/export")
+async def export_leads(
+    status: str = "",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    filter_q = {}
+    if status:
+        filter_q["status"] = status
+    cursor = db.leads.find(filter_q)
+    leads = []
+    async for l in cursor:
+        leads.append(l)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "线索列表"
+    ws.append(["姓名", "电话", "类别", "内容", "状态", "备注", "创建时间"])
+    for l in leads:
+        ws.append([l.get("name"), l.get("phone"), l.get("category"), l.get("content"), l.get("status"), l.get("remark"), l.get("createTime")])
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=leads.xlsx"},
+    )
+
+
 @router.get("/{lead_id}")
 async def get_lead_detail(
     lead_id: str,
@@ -75,34 +106,3 @@ async def update_lead_progress(
 ):
     await db.leads.update_one({"_id": ObjectId(lead_id)}, {"$set": {"status": body.get("status"), "remark": body.get("remark", "")}})
     return success(None, "线索进度已更新")
-
-
-@router.get("/export")
-async def export_leads(
-    status: str = "",
-    db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
-):
-    filter_q = {}
-    if status:
-        filter_q["status"] = status
-    cursor = db.leads.find(filter_q)
-    leads = []
-    async for l in cursor:
-        leads.append(l)
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "线索列表"
-    ws.append(["姓名", "电话", "类别", "内容", "状态", "备注", "创建时间"])
-    for l in leads:
-        ws.append([l.get("name"), l.get("phone"), l.get("category"), l.get("content"), l.get("status"), l.get("remark"), l.get("createTime")])
-
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=leads.xlsx"},
-    )

@@ -74,7 +74,7 @@
     </el-card>
 
     <!-- 提交成功后的弹窗 -->
-    <el-dialog v-model="successVisible" title="报修提交成功" width="400px" align-center>
+    <el-dialog v-model="successVisible" title="报修提交成功" width="400px" append-to-body align-center>
       <div class="success-box">
         <el-result icon="success" title="工单已生成" sub-title="请等待工程师接单">
           <template #extra>
@@ -186,10 +186,10 @@ const goToList = () => {
   text-align: center;
 }
 .order-no {
-  background: #f5f7fa;
+  background: var(--bg-muted);
   padding: 10px;
   border-radius: 4px;
-  color: #409EFF;
+  color: var(--color-accent);
   margin-bottom: 20px;
 }
 </style>

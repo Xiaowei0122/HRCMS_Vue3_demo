@@ -53,6 +53,7 @@ async def global_exception_handler(request: Request, exc):
 from app.routers import auth, users, roles, logs, dashboard
 from app.routers import products, news, honors, brands, cases, leads
 from app.routers import config, repairs, complaints, contact, upload
+from app.routers import finance, public
 
 app.include_router(auth.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
@@ -70,6 +71,8 @@ app.include_router(repairs.router, prefix="/api")
 app.include_router(complaints.router, prefix="/api")
 app.include_router(contact.router, prefix="/api")
 app.include_router(upload.router, prefix="/api")
+app.include_router(finance.router, prefix="/api")
+app.include_router(public.router, prefix="/api")
 
 # 静态文件
 uploads_path = os.path.abspath(settings.upload_dir)

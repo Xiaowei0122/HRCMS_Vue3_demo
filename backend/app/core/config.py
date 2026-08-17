@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # MongoDB
-    mongodb_uri: str = "mongodb://admin:Hr85550780@192.168.1.111:32769"
+    mongodb_uri: str = "mongodb://admin:123456@127.0.0.1:27017"
     database_name: str = "hrcms_test"
 
     # JWT

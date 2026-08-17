@@ -23,7 +23,7 @@
           v-for="(item, index) in detail.progress"
           :key="index"
           :timestamp="item.time"
-          :color="item.status === 'done' ? '#0bbd87' : '#409eff'"
+          :color="item.status === 'done' ? '#0bbd87' : 'var(--color-accent)'"
         >
           {{ item.node }}
         </el-timeline-item>

@@ -1,6 +1,6 @@
 <!--
   登录页面
-  品牌红色头部 + 白色表单卡片 + 动画过渡
+  企业级 SaaS 深色头部 + 白色表单卡片 + 动画过渡
 -->
 <template>
   <view class="login-page">
@@ -19,25 +19,29 @@
 
       <!-- 用户名 -->
       <view class="input-group">
-        <view class="input-icon">👤</view>
+        <view class="input-icon">
+          <SvgIcon name="user" :size="16" />
+        </view>
         <input
           class="input-field"
           v-model="form.username"
           placeholder="请输入用户名"
-          placeholder-style="color: #ccc"
+          placeholder-style="color: #94A3B8"
           maxlength="32"
         />
       </view>
 
       <!-- 密码 -->
       <view class="input-group">
-        <view class="input-icon">🔒</view>
+        <view class="input-icon">
+          <SvgIcon name="lock" :size="16" />
+        </view>
         <input
           class="input-field"
           v-model="form.password"
           type="password"
           placeholder="请输入密码"
-          placeholder-style="color: #ccc"
+          placeholder-style="color: #94A3B8"
           maxlength="32"
         />
       </view>
@@ -60,8 +64,11 @@
 
     <!-- 测试账号提示 -->
     <view class="test-tips">
-      <text class="tips-title">📌 测试账号</text>
-      <text class="tips-text">普通用户：user / 123456</text>
+      <view class="tips-header">
+        <SvgIcon name="info" :size="12" />
+        <text class="tips-title">测试账号 (密码均为 123456)</text>
+      </view>
+      <text class="tips-text">外部人员：user / 123456</text>
       <text class="tips-text">内部员工：suser / 123456</text>
       <text class="tips-text">工程师：engineer / 123456</text>
       <text class="tips-text">管理员：admin / 123456</text>
@@ -72,6 +79,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -117,7 +125,7 @@ const goRegister = () => {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #D32223 0%, #B81C1D 50%, #8B1516 100%);
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 50%, #020617 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -136,7 +144,7 @@ const goRegister = () => {
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -167,14 +175,14 @@ const goRegister = () => {
   background: #FFFFFF;
   border-radius: 20rpx;
   padding: 48rpx 36rpx 36rpx;
-  box-shadow: 0 16rpx 48rpx rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.12);
   animation: fadeInUp 0.6s ease;
 }
 
 .card-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #222;
+  color: #020617;
   text-align: center;
   display: block;
   margin-bottom: 40rpx;
@@ -183,20 +191,22 @@ const goRegister = () => {
 .input-group {
   display: flex;
   align-items: center;
-  background: #F7F7F7;
+  background: #F1F5F9;
   border-radius: 12rpx;
   padding: 0 20rpx;
   margin-bottom: 24rpx;
-  transition: all 0.3s;
+  transition: all 0.25s ease;
 
   &:focus-within {
-    background: #FFF0F0;
-    box-shadow: 0 0 0 2rpx #D32223 inset;
+    background: #F0F9FF;
+    box-shadow: 0 0 0 2rpx #0369A1 inset;
   }
 }
 
 .input-icon {
-  font-size: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-right: 16rpx;
 }
 
@@ -204,35 +214,35 @@ const goRegister = () => {
   flex: 1;
   height: 88rpx;
   font-size: 28rpx;
-  color: #333;
+  color: #020617;
 }
 
 .btn-login {
   width: 100%;
   height: 92rpx;
   line-height: 92rpx;
-  background: #D32223;
+  background: #0F172A;
   color: #FFFFFF;
   font-size: 30rpx;
   font-weight: 600;
   border: none;
   border-radius: 50rpx;
   margin-top: 20rpx;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
   text-align: center;
 
   &:active {
-    background: #B81C1D;
+    background: #1E293B;
     transform: scale(0.97);
   }
 
   &[disabled] {
-    background: #CCCCCC;
+    background: #94A3B8;
   }
 }
 
 .btn-loading {
-  background: #E88888 !important;
+  background: #64748B !important;
 }
 
 .login-footer {
@@ -243,25 +253,30 @@ const goRegister = () => {
 
 .link {
   font-size: 26rpx;
-  color: #D32223;
+  color: #0369A1;
 }
 
 .test-tips {
   margin-top: 40rpx;
   padding: 24rpx 32rpx;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 12rpx;
   backdrop-filter: blur(10px);
   width: 100%;
   animation: fadeInUp 0.8s ease;
 }
 
+.tips-header {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+
 .tips-title {
   font-size: 24rpx;
   color: #FFFFFF;
   font-weight: 600;
-  display: block;
-  margin-bottom: 8rpx;
 }
 
 .tips-text {

@@ -3,7 +3,8 @@
  * 基于 uni.request，自动附加 JWT Token，统一错误处理
  */
 
-const BASE_URL = 'http://localhost:8080/api'
+// 接口地址：优先取环境变量，开发默认指向本地后端
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api'
 
 // 请求拦截 — 附加 Token
 const getHeaders = () => {

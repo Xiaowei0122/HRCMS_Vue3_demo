@@ -9,8 +9,8 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
-// 引入全局样式（可选，如果你有的话）
-import './main.css'
+// 引入全局设计体系 (Design Tokens + Element Plus 主题 + 字体 + 动画)
+import './styles/index.css'
 
 const app = createApp(App)
 

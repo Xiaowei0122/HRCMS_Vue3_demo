@@ -48,7 +48,7 @@
     {
       "path": "pages/schedule/index",
       "style": {
-        "navigationBarTitleText": "工程师期排"
+        "navigationBarTitleText": "工程师排期"
       }
     },
     {
@@ -79,15 +79,15 @@
   "globalStyle": {
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "鸿瑞售后",
-    "navigationBarBackgroundColor": "#D32223",
-    "backgroundColor": "#F7F7F7",
-    "backgroundColorTop": "#D32223",
-    "backgroundColorBottom": "#F7F7F7"
+    "navigationBarBackgroundColor": "#0F172A",
+    "backgroundColor": "#F8FAFC",
+    "backgroundColorTop": "#0F172A",
+    "backgroundColorBottom": "#F8FAFC"
   },
   "tabBar": {
     "custom": true,
-    "color": "#999999",
-    "selectedColor": "#D32223",
+    "color": "#94A3B8",
+    "selectedColor": "#0F172A",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [
@@ -105,7 +105,7 @@
       },
       {
         "pagePath": "pages/schedule/index",
-        "text": "工程师期排",
+        "text": "工程师排期",
         "iconPath": "static/tabbar/calendar.png",
         "selectedIconPath": "static/tabbar/calendar-active.png"
       },
@@ -120,6 +120,18 @@
         "text": "联系我们",
         "iconPath": "static/tabbar/contact.png",
         "selectedIconPath": "static/tabbar/contact-active.png"
+      },
+      {
+        "pagePath": "pages/engineer/all-orders/index",
+        "text": "所有工单",
+        "iconPath": "static/tabbar/package.png",
+        "selectedIconPath": "static/tabbar/package-active.png"
+      },
+      {
+        "pagePath": "pages/engineer/my-orders/index",
+        "text": "我的工单",
+        "iconPath": "static/tabbar/list.png",
+        "selectedIconPath": "static/tabbar/list-active.png"
       }
     ]
   },

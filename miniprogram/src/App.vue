@@ -3,8 +3,7 @@
 </template>
 
 <script setup>
-// 纯 Vue 3 SPA 模式 — 不使用 uni-app 生命周期
-// uni polyfill 已在 main.js 中加载，所有页面组件保持不变
+// 纯 Vue 3 SPA — uni polyfill 在 main.js 中加载
 </script>
 
 <style lang="scss">
@@ -20,13 +19,36 @@ swiper, uni-swiper   { display: block; overflow: hidden; }
 swiper-item          { display: block; }
 navigator            { display: block; cursor: pointer; }
 
-/* Toast polyfill 样式 */
+/* ── 原生标签重置 ── */
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+button {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  cursor: pointer;
+
+  &::after { display: none; }
+}
+
+/* ── Toast polyfill ── */
 .uni-toast-polyfill {
   position: fixed;
   top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.78);
+  background: rgba(15, 23, 42, 0.88);
   color: #fff;
   font-size: 14px;
   padding: 10px 24px;
@@ -35,6 +57,7 @@ navigator            { display: block; cursor: pointer; }
   pointer-events: none;
   transition: opacity 0.3s;
   white-space: nowrap;
+  backdrop-filter: blur(8px);
 }
 .uni-toast--fadeout { opacity: 0; }
 </style>

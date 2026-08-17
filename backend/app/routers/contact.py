@@ -3,10 +3,12 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types
 from app.core.response import success, error, paginate
 
 router = APIRouter(prefix="/contact", tags=["联系我们"])
+
+_manage = Depends(require_user_types("admin", "internal"))
 
 
 @router.get("/engineers")
@@ -35,7 +37,7 @@ async def get_contact_engineers(
 async def create_contact_engineer(
     body: dict = Body(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _manage,
 ):
     result = await db.engineers.insert_one({**body, "showOnMobile": True})
     return success({"id": str(result.inserted_id)}, "工程师创建成功")
@@ -46,7 +48,7 @@ async def update_contact_engineer(
     eng_id: str,
     body: dict = Body(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _manage,
 ):
     await db.engineers.update_one({"_id": ObjectId(eng_id)}, {"$set": body})
     return success(None, "工程师信息已更新")
@@ -56,7 +58,7 @@ async def update_contact_engineer(
 async def delete_contact_engineer(
     eng_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _manage,
 ):
     await db.engineers.delete_one({"_id": ObjectId(eng_id)})
     return success(None, "工程师已删除")

@@ -46,7 +46,7 @@
     </el-card>
 
     <!-- 配置弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑工程师信息' : '添加工程师'" width="500px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑工程师信息' : '添加工程师'" width="500px" append-to-body>
       <el-form :model="form" label-width="100px" label-position="left">
         <el-form-item label="头像上传">
           <el-upload class="avatar-uploader" action="#" :show-file-list="false">
@@ -151,9 +151,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.contact-config-container { padding: 20px; background: #f5f7fa; min-height: calc(100vh - 110px); }
+.contact-config-container { padding: 20px; background: var(--bg-muted); min-height: calc(100vh - 110px); }
 .header-flex { display: flex; justify-content: space-between; align-items: center; }
-.title { font-weight: bold; border-left: 4px solid #409eff; padding-left: 10px; }
+.title { font-weight: bold; border-left: 4px solid var(--color-accent); padding-left: 10px; }
 
 /* 卡片样式 */
 .engineer-card { transition: all 0.3s; border-radius: 10px; }
@@ -162,8 +162,8 @@ onMounted(() => {
 .card-body { padding: 20px; display: flex; align-items: center; gap: 15px; }
 .info { flex: 1; }
 .name-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.name { font-size: 16px; font-weight: bold; color: #303133; }
-.phone { font-size: 13px; color: #606266; margin-bottom: 10px; }
+.name { font-size: 16px; font-weight: bold; color: var(--text-primary); }
+.phone { font-size: 13px; color: var(--text-secondary); margin-bottom: 10px; }
 .tags { display: flex; flex-wrap: wrap; gap: 5px; }
 
 .card-footer { background: #fafafa; padding: 10px; text-align: center; border-top: 1px solid #f0f0f0; }

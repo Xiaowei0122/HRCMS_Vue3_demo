@@ -18,9 +18,9 @@
         <div class="header-flex">
           <div class="left">
             <el-radio-group v-model="activeTab" size="default">
-              <el-radio-button label="all">全部投诉</el-radio-button>
-              <el-radio-button label="pending">待核实</el-radio-button>
-              <el-radio-button label="solving">处理中</el-radio-button>
+              <el-radio-button value="all">全部投诉</el-radio-button>
+              <el-radio-button value="pending">待核实</el-radio-button>
+              <el-radio-button value="solving">处理中</el-radio-button>
             </el-radio-group>
           </div>
           <div class="right">
@@ -47,7 +47,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="date" label="投诉时间" width="170" />
+        <el-table-column prop="createTime" label="投诉时间" width="170" />
         <el-table-column prop="customer" label="投诉客户" width="160" show-overflow-tooltip />
         <el-table-column prop="target" label="被投诉工程师" width="140">
           <template #default="{ row }">
@@ -78,14 +78,14 @@
           <template #default="{ row }">
             <el-button link type="primary" @click="handleProcess(row)">回访核实</el-button>
             <el-divider direction="vertical" />
-            <el-button link type="success" v-if="row.status !== '已关闭'" @click="closeComplaint(row)">结案</el-button>
+            <el-button link type="success" v-if="row.status !== '已解决'" @click="closeComplaint(row)">结案</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <!-- 处理弹窗保持原有功能 -->
-    <el-dialog v-model="dialogVisible" title="投诉及建议处理" width="480px" border-radius="8px">
+    <el-dialog v-model="dialogVisible" title="投诉及建议处理" width="480px" append-to-body border-radius="8px">
       <el-form label-position="top">
         <el-form-item label="当前投诉对象">
           <el-input :value="activeItem?.customer + ' (针对: ' + activeItem?.target + ')'" disabled />
@@ -114,7 +114,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { Search, Warning, List, Timer, Opportunity } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getComplaintList, processComplaint, closeComplaint as apiCloseComplaint } from '@/api/modules/complaints'
+import { getComplaintList, getComplaintStats, processComplaint, closeComplaint as apiCloseComplaint } from '@/api/modules/complaints'
 
 const activeTab = ref('all')
 const search = ref('')
@@ -122,13 +122,13 @@ const dialogVisible = ref(false)
 const activeItem = ref(null)
 const processForm = ref({ type: '', note: '' })
 
-// 统计看板数据
-const statCards = [
-  { title: '待处理投诉', value: '3', unit: '单', color: '#F56C6C', icon: Warning },
-  { title: '本月累计投诉', value: '28', unit: '单', color: '#409EFF', icon: List },
-  { title: '平均响应耗时', value: '1.2', unit: 'h', color: '#67C23A', icon: Timer },
-  { title: '客户整体满意度', value: '96.8', unit: '%', color: '#E6A23C', icon: Opportunity },
-]
+// 统计看板数据（对接 /complaints/stats）
+const statCards = ref([
+  { title: '待处理投诉', key: 'pending', value: '0', unit: '单', color: 'var(--color-danger)', icon: Warning },
+  { title: '处理中投诉', key: 'processing', value: '0', unit: '单', color: 'var(--color-accent)', icon: List },
+  { title: '已解决投诉', key: 'resolved', value: '0', unit: '单', color: 'var(--color-success)', icon: Timer },
+  { title: '累计投诉', key: 'total', value: '0', unit: '单', color: 'var(--color-warning)', icon: Opportunity },
+])
 
 const complaints = ref([])
 
@@ -154,8 +154,8 @@ const filteredData = computed(() => {
 })
 
 const getStatusColor = (status) => {
-  if (status === '待处理') return '#F56C6C'
-  if (status === '处理中') return '#409EFF'
+  if (status === '待处理') return 'var(--color-danger)'
+  if (status === '处理中') return 'var(--color-accent)'
   return '#909399'
 }
 
@@ -164,13 +164,25 @@ const handleProcess = (row) => {
   dialogVisible.value = true
 }
 
+const TYPE_LABELS = {
+  '1': '内部警示及教育',
+  '2': '致歉并安排补偿维修',
+  '3': '绩效考核扣除',
+  '4': '判定为非工程师责任',
+}
+
 const confirmProcess = async () => {
   if (!processForm.value.type) return ElMessage.warning('请选择处理方案')
   try {
-    await processComplaint(activeItem.value.id, { type: processForm.value.type, note: processForm.value.note })
+    const label = TYPE_LABELS[processForm.value.type] || ''
+    const note = processForm.value.note || ''
+    // 后端 process 端点读取 result 字段，这里把决策类型与备注合并写入
+    const result = label && note ? `${label}；${note}` : (note || label)
+    await processComplaint(activeItem.value.id, { result })
     ElMessage.success('核实结果录入成功')
     dialogVisible.value = false
     fetchComplaints()
+    fetchStats()
   } catch { /* ignore */ }
 }
 
@@ -183,38 +195,50 @@ const closeComplaint = (row) => {
       await apiCloseComplaint(row.id)
       ElMessage.success('已结案归档')
       fetchComplaints()
+      fetchStats()
     } catch { /* ignore */ }
   }).catch(() => {})
 }
 
+const fetchStats = async () => {
+  try {
+    const stats = await getComplaintStats()
+    if (!stats) return
+    statCards.value.forEach(card => {
+      card.value = String(stats[card.key] ?? 0)
+    })
+  } catch { /* ignore */ }
+}
+
 onMounted(() => {
   fetchComplaints()
+  fetchStats()
 })
 </script>
 
 <style scoped>
-.complaints-manage-container { padding: 20px; background-color: #f5f7fa; min-height: calc(100vh - 100px); }
+.complaints-manage-container { padding: 20px; background-color: var(--bg-muted); min-height: calc(100vh - 100px); }
 
 /* 统计卡片样式 */
 .stat-row { margin-bottom: 20px; }
 .stat-card {
-  background: #fff;
+  background: var(--bg-card);
   padding: 20px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-left: 4px solid;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-card);
 }
-.stat-title { font-size: 14px; color: #909399; margin-bottom: 8px; }
+.stat-title { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
 .stat-value { font-size: 24px; font-weight: bold; }
 .stat-value .unit { font-size: 13px; margin-left: 4px; font-weight: normal; }
 .stat-icon { font-size: 40px; }
 
 /* 列表美化 */
 .header-flex { display: flex; justify-content: space-between; align-items: center; }
-.list-card { border-radius: 8px; }
+.list-card { border-radius: var(--radius-md); }
 
 /* 状态点动画 */
 .status-wrapper { display: flex; align-items: center; gap: 8px; }
@@ -227,10 +251,10 @@ onMounted(() => {
 }
 
 /* 展开行样式 */
-.expand-content { padding: 10px 30px; background: #fcfcfc; }
-.complaint-text { color: #606266; line-height: 1.6; padding: 10px 0; }
-.result-text { color: #67C23A; font-weight: bold; }
+.expand-content { padding: 10px 30px; background: var(--bg-muted); }
+.complaint-text { color: var(--text-secondary); line-height: 1.6; padding: 10px 0; }
+.result-text { color: var(--color-success); font-weight: bold; }
 
-.category-dot { color: #606266; font-size: 13px; }
-.category-dot::before { content: '•'; margin-right: 5px; color: #409EFF; font-weight: bold; }
+.category-dot { color: var(--text-secondary); font-size: 13px; }
+.category-dot::before { content: '•'; margin-right: 5px; color: var(--color-accent); font-weight: bold; }
 </style>

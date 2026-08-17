@@ -5,15 +5,31 @@ from app.core.security import verify_password, hash_password, create_access_toke
 
 
 def _get_user_type(user: dict) -> str:
-    """从用户 role 推导小程序端 userType"""
+    """从用户 role 推导小程序端 userType
+    角色 → userType 映射：
+      管理员     → admin       (最高权限，CMS 全部可见)
+      工程师     → engineer    (售后报修模块)
+      内部员工   → internal    (内部业务模块)
+      外部人员   → normal      (受限：报修 + 查看)
+      旧版兼容   → 按 role 名模糊映射
+    """
     role = user.get("role", "")
+    # 新角色体系直映射
+    mapping = {
+        "管理员": "admin",
+        "工程师": "engineer",
+        "内部员工": "internal",
+        "外部人员": "normal",
+    }
+    if role in mapping:
+        return mapping[role]
+    # 旧版兼容
     if role == "超级管理员":
         return "admin"
     if role == "技术支持":
         return "engineer"
-    # 销售主管、财务经理等内部员工 → special
     if role in ("销售主管", "财务经理"):
-        return "special"
+        return "internal"
     return "normal"
 
 

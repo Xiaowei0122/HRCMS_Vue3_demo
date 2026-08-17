@@ -48,7 +48,7 @@
       </el-table>
     </el-card>
 
-    <el-drawer v-model="drawerVisible" :title="isEdit ? '编辑新闻' : '撰写新文章'" size="50%">
+    <el-drawer v-model="drawerVisible" :title="isEdit ? '编辑新闻' : '撰写新文章'" size="50%" append-to-body>
       <el-form :model="newsForm" label-position="top">
         <el-form-item label="文章标题">
           <el-input v-model="newsForm.title" placeholder="请输入引人入胜的标题" />
@@ -64,15 +64,25 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="封面图">
-              <el-upload action="#" :auto-upload="false" list-type="picture-card" :limit="1">
-                <el-icon><Plus /></el-icon>
+              <el-upload
+                class="news-cover-uploader"
+                :show-file-list="false"
+                :http-request="handleCoverUpload"
+              >
+                <img v-if="newsForm.cover" :src="newsForm.cover" class="news-cover-preview" />
+                <el-icon v-else class="news-cover-icon"><Plus /></el-icon>
               </el-upload>
             </el-form-item>
           </el-col>
         </el-row>
         <el-form-item label="文章正文">
-          <div class="editor-placeholder">
-             <el-input type="textarea" :rows="15" placeholder="在此输入正文内容，支持 HTML 格式..." v-model="newsForm.content" />
+          <div class="rich-editor-wrapper">
+            <QuillEditor
+              v-model:content="newsForm.content"
+              contentType="html"
+              toolbar="full"
+              :options="editorOptions"
+            />
           </div>
         </el-form-item>
       </el-form>
@@ -87,7 +97,27 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { QuillEditor } from '@vueup/vue-quill'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import { getNewsList, createNews, updateNews, deleteNews as apiDeleteNews, togglePinNews, publishNews } from '@/api/modules/news'
+import { uploadFile } from '@/api/modules/upload'
+
+const editorOptions = {
+  modules: {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ color: [] }, { background: [] }],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ align: [] }],
+      ['blockquote', 'code-block'],
+      [{ indent: '-1' }, { indent: '+1' }],
+      ['link', 'image'],
+      ['clean'],
+    ],
+  },
+  placeholder: '在此输入正文内容...',
+}
 
 const searchQuery = ref('')
 const typeFilter = ref('')
@@ -141,6 +171,16 @@ const editNews = (row) => {
   drawerVisible.value = true
 }
 
+const handleCoverUpload = async ({ file, onSuccess, onError }) => {
+  try {
+    const res = await uploadFile(file, 'news')
+    newsForm.cover = res.url
+    onSuccess && onSuccess(res)
+  } catch (e) {
+    onError && onError(e)
+  }
+}
+
 const saveNews = async () => {
   try {
     if (isEdit.value) {
@@ -188,5 +228,29 @@ onMounted(() => {
 
 <style scoped>
 .header-main { display: flex; justify-content: space-between; align-items: center; }
-.editor-placeholder { border: 1px solid #dcdfe6; border-radius: 4px; padding: 10px; }
+.rich-editor-wrapper {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.rich-editor-wrapper :deep(.ql-toolbar) {
+  border: none;
+  border-bottom: 1px solid var(--border-color-light, #F1F5F9);
+  background: var(--bg-muted);
+}
+.rich-editor-wrapper :deep(.ql-container) {
+  border: none;
+  font-size: var(--text-base);
+}
+.rich-editor-wrapper :deep(.ql-editor) {
+  min-height: 320px;
+}
+.rich-editor-wrapper :deep(.ql-editor.ql-blank::before) {
+  color: var(--text-muted);
+  font-style: normal;
+}
+
+.news-cover-uploader { width: 120px; }
+.news-cover-preview { width: 120px; height: 90px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); display: block; }
+.news-cover-icon { font-size: 28px; color: #8c939d; width: 120px; height: 90px; text-align: center; line-height: 90px; border: 1px dashed #d9d9d9; border-radius: 4px; }
 </style>

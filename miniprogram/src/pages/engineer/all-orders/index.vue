@@ -4,7 +4,7 @@
 -->
 <template>
   <view class="all-orders-page">
-    <!-- 顶部筛选 -->
+    <!-- 状态筛选 -->
     <view class="filter-bar">
       <view
         v-for="tab in statusTabs"
@@ -14,7 +14,7 @@
         @click="switchTab(tab.value)"
       >
         {{ tab.label }}
-        <text v-if="tab.value === 'pending' && pendingCount > 0" class="badge">{{ pendingCount }}</text>
+        <text v-if="tab.value === STATUS.PENDING && pendingCount > 0" class="badge">{{ pendingCount }}</text>
       </view>
     </view>
 
@@ -35,15 +35,15 @@
           @click="goDetail(item)"
         >
           <!-- 紧急标识条 -->
-          <view class="card-urgency-bar" :class="'bar-' + (item.urgency || 'normal')"></view>
+          <view class="card-urgency-bar" :class="'bar-' + priorityKey(item.priority)"></view>
 
           <view class="card-main">
             <view class="card-top">
               <view class="order-no">
                 <text class="no-text">{{ item.orderNo }}</text>
               </view>
-              <view class="order-status" :class="'status-' + (item.status || 'pending')">
-                {{ statusMap[item.status] || '待接单' }}
+              <view class="order-status" :class="'status-' + statusKey(item.status)">
+                {{ item.status || '待接单' }}
               </view>
             </view>
 
@@ -51,18 +51,27 @@
               <text class="card-company">{{ item.company }}</text>
               <text class="card-desc text-ellipsis-2">{{ item.description }}</text>
               <view class="card-meta">
-                <text class="meta-item">📅 {{ formatDate(item.createTime) }}</text>
-                <text class="meta-item">👤 {{ item.contactName }}</text>
-                <text class="meta-item">📍 {{ item.address }}</text>
+                <view class="meta-item">
+                  <SvgIcon name="calendar" :size="22" />
+                  <text>{{ formatDate(item.createTime) }}</text>
+                </view>
+                <view class="meta-item">
+                  <SvgIcon name="user" :size="22" />
+                  <text>{{ item.contact }}</text>
+                </view>
+                <view class="meta-item">
+                  <SvgIcon name="mapPin" :size="22" />
+                  <text>{{ item.address }}</text>
+                </view>
               </view>
             </view>
 
             <view class="card-foot">
-              <view class="urgency-label" :class="'urgency-' + (item.urgency || 'normal')">
-                {{ urgencyMap[item.urgency] || '一般' }}
+              <view class="urgency-label" :class="'urgency-' + priorityKey(item.priority)">
+                {{ item.priority || '普通' }}
               </view>
               <text class="card-action">
-                {{ item.status === 'pending' ? '🔔 待接单' : '查看详情 →' }}
+                {{ item.status === STATUS.PENDING ? '待接单' : '查看详情 →' }}
               </text>
             </view>
           </view>
@@ -71,7 +80,7 @@
 
       <EmptyState
         v-else
-        icon="📦"
+        icon="package"
         text="暂无工单"
         sub-text="用户提交报修后，工单将显示在这里"
       />
@@ -91,23 +100,22 @@ import { ref, onMounted } from 'vue'
 import { useRepairStore } from '@/stores/repair'
 import CustomTabBar from '@/components/CustomTabBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { STATUS, statusKey, priorityKey } from '@/utils/repair-status'
 
 const repairStore = useRepairStore()
 const list = ref([])
 const refreshing = ref(false)
-const currentStatus = ref('pending')
+const currentStatus = ref(STATUS.PENDING)
 const page = ref(1)
 const noMore = ref(false)
 const pendingCount = ref(0)
 
 const statusTabs = [
-  { label: '待接单', value: 'pending' },
-  { label: '处理中', value: 'processing' },
-  { label: '已完成', value: 'done' }
+  { label: '待接单', value: STATUS.PENDING },
+  { label: '处理中', value: STATUS.PROCESSING },
+  { label: '已完成', value: STATUS.DONE }
 ]
-
-const statusMap = { pending: '待接单', processing: '处理中', done: '已完成' }
-const urgencyMap = { urgent: '紧急', normal: '一般', low: '不急' }
 
 const switchTab = (val) => {
   currentStatus.value = val
@@ -133,7 +141,7 @@ const loadList = async () => {
     if (items.length < 20) noMore.value = true
 
     // 统计待接单数量
-    if (currentStatus.value === 'pending') {
+    if (currentStatus.value === STATUS.PENDING) {
       pendingCount.value = items.length
     }
   } catch { /* handled */ }
@@ -172,11 +180,10 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .all-orders-page {
-  min-height: 100vh;
-  background: #F7F7F7;
+  height: 100vh;
+  background: #F8FAFC;
   display: flex;
   flex-direction: column;
-  padding-bottom: 140rpx;
 }
 
 .filter-bar {
@@ -194,14 +201,14 @@ onMounted(() => {
   text-align: center;
   padding: 12rpx 0;
   font-size: 26rpx;
-  color: #666;
-  background: #F7F7F7;
+  color: #64748B;
+  background: #F1F5F9;
   border-radius: 8rpx;
-  transition: all 0.25s;
+  transition: all 0.25s ease;
   position: relative;
 
   &.active {
-    background: #D32223;
+    background: #0F172A;
     color: #FFFFFF;
     font-weight: 600;
   }
@@ -214,7 +221,7 @@ onMounted(() => {
   min-width: 32rpx;
   height: 32rpx;
   line-height: 32rpx;
-  background: #FF5722;
+  background: #DC2626;
   color: #FFFFFF;
   font-size: 20rpx;
   border-radius: 50%;
@@ -233,7 +240,7 @@ onMounted(() => {
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.04);
   overflow: hidden;
   display: flex;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 
   &:active { transform: scale(0.98); }
 }
@@ -241,9 +248,9 @@ onMounted(() => {
 .card-urgency-bar {
   width: 8rpx;
 
-  &.bar-urgent { background: #F44336; }
-  &.bar-normal { background: #FF9800; }
-  &.bar-low    { background: #4CAF50; }
+  &.bar-urgent { background: #DC2626; }
+  &.bar-normal { background: #D97706; }
+  &.bar-low    { background: #16A34A; }
 }
 
 .card-main { flex: 1; padding: 24rpx; }
@@ -254,46 +261,49 @@ onMounted(() => {
 }
 
 .no-text {
-  font-size: 24rpx; color: #333; font-family: monospace; font-weight: 500;
+  font-size: 24rpx; color: #334155; font-family: monospace; font-weight: 500;
 }
 
 .order-status {
   font-size: 22rpx; padding: 4rpx 16rpx; border-radius: 20rpx; font-weight: 500;
 
-  &.status-pending    { background: #FFF3E0; color: #FF5722; }
-  &.status-processing { background: #E3F2FD; color: #1565C0; }
-  &.status-done       { background: #E8F5E9; color: #2E7D32; }
+  &.status-pending    { background: #FEF3C7; color: #D97706; }
+  &.status-processing { background: #E0F2FE; color: #0369A1; }
+  &.status-done       { background: #DCFCE7; color: #16A34A; }
 }
 
 .card-company {
-  font-size: 30rpx; font-weight: 700; color: #222; display: block; margin-bottom: 8rpx;
+  font-size: 30rpx; font-weight: 700; color: #020617; display: block; margin-bottom: 8rpx;
 }
 
 .card-desc {
-  font-size: 26rpx; color: #666; line-height: 1.5; margin-bottom: 12rpx;
+  font-size: 26rpx; color: #334155; line-height: 1.5; margin-bottom: 12rpx;
 }
 
 .card-meta {
   display: flex; flex-wrap: wrap; gap: 8rpx 24rpx;
 }
 
-.meta-item { font-size: 22rpx; color: #999; }
+.meta-item {
+  display: flex; align-items: center; gap: 4rpx;
+  font-size: 22rpx; color: #64748B;
+}
 
 .card-foot {
   display: flex; justify-content: space-between; align-items: center;
-  margin-top: 12rpx; padding-top: 12rpx; border-top: 1px solid #F0F0F0;
+  margin-top: 12rpx; padding-top: 12rpx; border-top: 1px solid #E2E8F0;
 }
 
 .urgency-label {
-  font-size: 22rpx; padding: 4rpx 14rpx; border-radius: 4rpx;
+  font-size: 22rpx; padding: 4rpx 14rpx; border-radius: 6rpx;
 
-  &.urgency-urgent { background: #FFEBEE; color: #C62828; }
-  &.urgency-normal { background: #FFF8E1; color: #F57F17; }
-  &.urgency-low    { background: #E8F5E9; color: #2E7D32; }
+  &.urgency-urgent { background: #FEE2E2; color: #DC2626; }
+  &.urgency-normal { background: #FEF3C7; color: #D97706; }
+  &.urgency-low    { background: #DCFCE7; color: #16A34A; }
 }
 
-.card-action { font-size: 24rpx; color: #D32223; font-weight: 500; }
+.card-action { font-size: 24rpx; color: #0369A1; font-weight: 500; }
 
 .list-footer { text-align: center; padding: 32rpx; }
-.footer-text { font-size: 24rpx; color: #ccc; }
+.footer-text { font-size: 24rpx; color: #94A3B8; }
 </style>

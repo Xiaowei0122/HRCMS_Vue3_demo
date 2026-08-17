@@ -7,7 +7,7 @@
     <!-- 头部 -->
     <view class="reg-header">
       <view class="back-btn" @click="goBack">
-        <text class="back-icon">←</text>
+        <SvgIcon name="caretLeft" :size="20" />
       </view>
       <text class="header-title">注册账号</text>
       <view class="placeholder"></view>
@@ -23,7 +23,7 @@
           class="input-field"
           v-model="form.username"
           placeholder="用于登录的用户名（4-20位）"
-          placeholder-style="color: #ccc"
+          placeholder-style="color: #94A3B8"
           maxlength="20"
         />
       </view>
@@ -34,7 +34,7 @@
           class="input-field"
           v-model="form.realName"
           placeholder="您的真实姓名"
-          placeholder-style="color: #ccc"
+          placeholder-style="color: #94A3B8"
           maxlength="20"
         />
       </view>
@@ -46,7 +46,7 @@
           v-model="form.phone"
           type="number"
           placeholder="用于联系您的手机号"
-          placeholder-style="color: #ccc"
+          placeholder-style="color: #94A3B8"
           maxlength="11"
         />
       </view>
@@ -58,7 +58,7 @@
           v-model="form.password"
           type="password"
           placeholder="6-20位登录密码"
-          placeholder-style="color: #ccc"
+          placeholder-style="color: #94A3B8"
           maxlength="20"
         />
       </view>
@@ -70,7 +70,7 @@
           v-model="form.confirmPassword"
           type="password"
           placeholder="再次输入密码"
-          placeholder-style="color: #ccc"
+          placeholder-style="color: #94A3B8"
           maxlength="20"
         />
       </view>
@@ -95,6 +95,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import SvgIcon from '@/components/SvgIcon.vue'
 
 const authStore = useAuthStore()
 const loading = ref(false)
@@ -158,11 +159,11 @@ const goLogin = () => uni.navigateBack()
 <style lang="scss" scoped>
 .register-page {
   min-height: 100vh;
-  background: #F7F7F7;
+  background: #F8FAFC;
 }
 
 .reg-header {
-  background: #D32223;
+  background: #0F172A;
   padding: 24rpx 32rpx;
   padding-top: calc(88rpx + env(safe-area-inset-top));
   display: flex;
@@ -176,12 +177,6 @@ const goLogin = () => uni.navigateBack()
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.back-icon {
-  font-size: 40rpx;
-  color: #FFFFFF;
-  font-weight: 300;
 }
 
 .header-title {
@@ -204,7 +199,7 @@ const goLogin = () => uni.navigateBack()
 
 .card-desc {
   font-size: 26rpx;
-  color: #999;
+  color: #64748B;
   display: block;
   margin-bottom: 32rpx;
 }
@@ -215,24 +210,24 @@ const goLogin = () => uni.navigateBack()
 
 .input-label {
   font-size: 26rpx;
-  color: #333;
+  color: #334155;
   font-weight: 500;
   margin-bottom: 8rpx;
   display: block;
 }
 
 .required {
-  color: #D32223;
+  color: #DC2626;
 }
 
 .input-field {
   width: 100%;
   height: 80rpx;
-  background: #F7F7F7;
+  background: #F1F5F9;
   border-radius: 12rpx;
   padding: 0 20rpx;
   font-size: 28rpx;
-  color: #333;
+  color: #020617;
   box-sizing: border-box;
 }
 
@@ -240,7 +235,7 @@ const goLogin = () => uni.navigateBack()
   width: 100%;
   height: 88rpx;
   line-height: 88rpx;
-  background: #D32223;
+  background: #0F172A;
   color: #FFFFFF;
   font-size: 30rpx;
   font-weight: 600;
@@ -248,9 +243,18 @@ const goLogin = () => uni.navigateBack()
   border-radius: 50rpx;
   margin-top: 16rpx;
   text-align: center;
+  transition: all 0.25s ease;
 
-  &:active { opacity: 0.85; }
-  &[disabled] { background: #CCCCCC; }
+  &:active {
+    transform: scale(0.97);
+  }
+  &[disabled] {
+    background: #94A3B8;
+  }
+}
+
+.btn-loading {
+  background: #64748B !important;
 }
 
 .reg-footer {
@@ -258,8 +262,11 @@ const goLogin = () => uni.navigateBack()
   justify-content: center;
   margin-top: 24rpx;
   font-size: 26rpx;
-  color: #999;
+  color: #64748B;
 
-  .link { color: #D32223; margin-left: 8rpx; }
+  .link {
+    color: #0369A1;
+    margin-left: 8rpx;
+  }
 }
 </style>

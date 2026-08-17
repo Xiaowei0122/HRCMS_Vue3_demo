@@ -15,10 +15,21 @@ export const useAuthStore = defineStore('auth', () => {
   // ── getters ──
   const userType = computed(() => userInfo.value?.userType || 'normal')
   const isNormalUser = computed(() => userType.value === 'normal')
-  const isSpecialUser = computed(() => userType.value === 'special')
+  const isInternalUser = computed(() => userType.value === 'internal')
   const isEngineer = computed(() => userType.value === 'engineer')
   const isAdmin = computed(() => userType.value === 'admin')
   const userName = computed(() => userInfo.value?.realName || userInfo.value?.username || '用户')
+
+  // 角色中文标签
+  const roleLabel = computed(() => {
+    const map = {
+      normal: '外部人员',
+      internal: '内部员工',
+      engineer: '工程师',
+      admin: '管理员'
+    }
+    return map[userType.value] || '外部人员'
+  })
 
   // ── 初始化：从本地存储恢复登录态 ──
   const checkLogin = () => {
@@ -82,10 +93,11 @@ export const useAuthStore = defineStore('auth', () => {
     isLoggedIn,
     userType,
     isNormalUser,
-    isSpecialUser,
+    isInternalUser,
     isEngineer,
     isAdmin,
     userName,
+    roleLabel,
     checkLogin,
     login,
     register,

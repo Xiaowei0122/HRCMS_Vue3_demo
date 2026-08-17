@@ -31,15 +31,21 @@ async def run_seed(db):
                  {"_id": 92, "label": "权限设置", "code": "system:roles"},
                  {"_id": 93, "label": "操作日志", "code": "system:logs"},
              ]},
+            {"_id": 10, "label": "财务管理", "code": "finance", "icon": "Wallet", "sort": 10, "parentId": None,
+             "children": [
+                 {"_id": 101, "label": "共享文件", "code": "finance:files"},
+                 {"_id": 102, "label": "资产管理", "code": "finance:assets"},
+             ]},
         ])
 
     # ── 角色 ────────────────────────────────────────
+    # 4 种角色：管理员(全部权限)、内部员工、工程师(售后)、外部人员(受限)
     if await db.roles.count_documents({}) == 0:
         await db.roles.insert_many([
-            {"roleName": "超级管理员", "code": "admin", "permissionIds": [1,2,3,31,32,33,34,35,36,4,5,6,7,8,9,91,92,93]},
-            {"roleName": "销售主管", "code": "sales", "permissionIds": [2,4,5,6,7,8]},
-            {"roleName": "技术支持", "code": "support", "permissionIds": [3,31,32,33,34,35,36]},
-            {"roleName": "财务经理", "code": "finance", "permissionIds": [1,2]},
+            {"roleName": "管理员", "code": "admin", "permissionIds": [1,2,3,31,32,33,34,35,36,4,5,6,7,8,9,91,92,93,10,101,102]},
+            {"roleName": "内部员工", "code": "internal", "permissionIds": [1,2,3,31,32,33,34,35,36,4,5,6,7,8,10,101,102]},
+            {"roleName": "工程师", "code": "engineer", "permissionIds": [1,3,31,32,33,34]},
+            {"roleName": "外部人员", "code": "normal", "permissionIds": [1,3,31,32,35]},
         ])
 
     # ── 管理员（CMS 共用）──────────────────────────
@@ -47,7 +53,7 @@ async def run_seed(db):
         await db.users.insert_one({
             "username": "admin",
             "realName": "系统管理员",
-            "role": "超级管理员",
+            "role": "管理员",
             "userType": "admin",
             "phone": "13800000000",
             "hashedPassword": hash_password("123456"),
@@ -56,17 +62,17 @@ async def run_seed(db):
             "createdAt": datetime.now(timezone.utc),
         })
     else:
-        # 已有 admin → 补 userType 字段
+        # 已有 admin → 补 userType + 更新 role 为新体系
         await db.users.update_one(
-            {"username": "admin", "userType": {"$exists": False}},
-            {"$set": {"userType": "admin"}},
+            {"username": "admin", "role": "超级管理员"},
+            {"$set": {"role": "管理员", "userType": "admin"}},
         )
 
     # ── 小程序测试账号 ──────────────────────────────
     test_accounts = [
-        {"username": "user", "realName": "普通用户", "role": "", "userType": "normal", "phone": "13800000101"},
-        {"username": "suser", "realName": "内部员工", "role": "销售主管", "userType": "special", "phone": "13800000102"},
-        {"username": "engineer", "realName": "维修工程师", "role": "技术支持", "userType": "engineer", "phone": "13800000103"},
+        {"username": "user", "realName": "外部人员", "role": "外部人员", "userType": "normal", "phone": "13800000101"},
+        {"username": "suser", "realName": "内部员工", "role": "内部员工", "userType": "internal", "phone": "13800000102"},
+        {"username": "engineer", "realName": "维修工程师", "role": "工程师", "userType": "engineer", "phone": "13800000103"},
     ]
     for acct in test_accounts:
         if await db.users.count_documents({"username": acct["username"]}) == 0:
@@ -82,20 +88,20 @@ async def run_seed(db):
                 "createdAt": datetime.now(timezone.utc),
             })
         else:
-            # 已有账号 → 补 userType
+            # 已有账号 → 更新 role + userType 为新体系
             await db.users.update_one(
-                {"username": acct["username"], "userType": {"$exists": False}},
-                {"$set": {"userType": acct["userType"]}},
+                {"username": acct["username"]},
+                {"$set": {"role": acct["role"], "userType": acct["userType"]}},
             )
 
     # ── 示例用户 ────────────────────────────────────
     if await db.users.count_documents({"username": "zhangsan"}) == 0:
         await db.users.insert_many([
-            {"username": "zhangsan", "realName": "张三", "role": "销售主管", "userType": "special",
+            {"username": "zhangsan", "realName": "张三", "role": "内部员工", "userType": "internal",
              "phone": "13800000001",
              "hashedPassword": hash_password("123456"), "status": True, "lastLogin": None,
              "createdAt": datetime.now(timezone.utc)},
-            {"username": "lisi", "realName": "李四", "role": "技术支持", "userType": "engineer",
+            {"username": "lisi", "realName": "李四", "role": "工程师", "userType": "engineer",
              "phone": "13800000002",
              "hashedPassword": hash_password("123456"), "status": True, "lastLogin": None,
              "createdAt": datetime.now(timezone.utc)},
@@ -168,16 +174,24 @@ async def run_seed(db):
              "status": "处理中", "remark": "已派工程师", "createTime": "2025-01-18 14:20"},
         ])
 
-    # ── 示例工程师 ──────────────────────────────────
+    # ── 示例工程师（username 关联登录账号，供工程师自助接单定位到自己）─────
     if await db.engineers.count_documents({}) == 0:
         await db.engineers.insert_many([
-            {"name": "张工", "phone": "13811110001", "avatar": "", "skills": ["门禁维修", "网络调试"], "showOnMobile": True,
+            {"name": "张工", "username": "engineer", "phone": "13811110001", "avatar": "", "skills": ["门禁维修", "网络调试"], "showOnMobile": True,
              "desc": "10年安防设备维修经验", "team": "维保一组"},
-            {"name": "李工", "phone": "13811110002", "avatar": "", "skills": ["车牌识别", "道闸维修"], "showOnMobile": True,
+            {"name": "李工", "username": "lisi", "phone": "13811110002", "avatar": "", "skills": ["车牌识别", "道闸维修"], "showOnMobile": True,
              "desc": "8年停车系统维护经验", "team": "维保二组"},
-            {"name": "王工", "phone": "13811110003", "avatar": "", "skills": ["人脸识别", "软件调试"], "showOnMobile": True,
+            {"name": "王工", "username": "", "phone": "13811110003", "avatar": "", "skills": ["人脸识别", "软件调试"], "showOnMobile": True,
              "desc": "5年智能硬件维修经验", "team": "维保一组"},
         ])
+    else:
+        # 已存在 → 幂等补齐 username 关联（王工暂无对应登录账号）
+        _eng_links = {"张工": "engineer", "李工": "lisi", "王工": ""}
+        for _name, _uname in _eng_links.items():
+            await db.engineers.update_one(
+                {"name": _name, "username": {"$exists": False}},
+                {"$set": {"username": _uname}},
+            )
 
     # ── 示例报修工单 + 排期联动（16 条工单 + 2 条锁定）────
     if await db.repairs.count_documents({}) == 0:
@@ -317,6 +331,15 @@ async def run_seed(db):
                "lisi", 68),
         ]
 
+        # 归一化进度时间：样例里是 "HH:MM"，补全年月日（取工单创建日期）
+        for _rd in repairs_data:
+            _ct = _rd.get("createTime", "")
+            _date = _ct.split(" ")[0] if " " in _ct else ""
+            for _p in _rd.get("progress", []):
+                _t = _p.get("time", "")
+                if _date and _t and ":" in _t and " " not in _t:
+                    _p["time"] = f"{_date} {_t}"
+
         # 批量插入并记住 ID
         inserted = []
         for rd in repairs_data:
@@ -418,11 +441,15 @@ async def run_seed(db):
                 "footer": "© 2024 鸿瑞科技 版权所有",
                 "seoKeywords": "安防,智慧社区,门禁系统",
                 "seoDescription": "鸿瑞科技 — 智慧安防解决方案提供商",
+                "qrcode": "",
+                "icp": "",
+                "gongan": "",
             },
             "banners": [],
             "contact": {
                 "address": "广东省深圳市南山区科技园路88号",
                 "phone": "400-888-9999",
+                "businessPhone": "400-888-9999",
                 "email": "contact@hongrui.com",
                 "workingHours": "周一至周五 9:00-18:00",
             },
@@ -431,7 +458,51 @@ async def run_seed(db):
                 "longitude": 113.949,
                 "zoom": 15,
             },
+            "services": [
+                {"id": "sales", "icon": "🛒", "title": "办公设备销售", "desc": "打印机、复印机、硒鼓耗材等全品类办公设备供应"},
+                {"id": "repair", "icon": "🔧", "title": "售后维修", "desc": "快速响应上门维修，专业工程师团队全程保障"},
+                {"id": "supplies", "icon": "📦", "title": "耗材供应", "desc": "原装正品耗材，稳定供货，价格透明"},
+                {"id": "solutions", "icon": "💡", "title": "解决方案", "desc": "门禁、停车、安防等智慧办公整体解决方案"},
+            ],
+            "about": {
+                "intro": "二十年办公设备与服务沉淀",
+                "stats": [
+                    {"num": "20+", "label": "全平台服务年限"},
+                    {"num": "30+", "label": "服务品牌"},
+                    {"num": "500+", "label": "服务企业客户"},
+                    {"num": "24/7", "label": "全天候响应"},
+                ],
+                "culture": [
+                    {"title": "客户至上", "desc": "以客户需求为中心，持续创造价值", "icon": "🤝"},
+                    {"title": "技术创新", "desc": "拥抱新技术，驱动智慧办公升级", "icon": "💡"},
+                    {"title": "诚信经营", "desc": "诚实守信，与伙伴共同成长", "icon": "🏆"},
+                ],
+                "depts": [
+                    {"name": "总经办", "duty": "战略规划与综合管理"},
+                    {"name": "销售部", "duty": "客户开拓与产品销售"},
+                    {"name": "售后部", "duty": "维修保养与技术支持"},
+                    {"name": "技术部", "duty": "方案设计与系统集成"},
+                    {"name": "财务部", "duty": "财务核算与资产管理"},
+                    {"name": "行政部", "duty": "行政后勤与人事管理"},
+                ],
+                "album": [],
+            },
         })
+    else:
+        # 补齐新版本新增字段（对已存在的库，幂等）
+        existing = await db.global_config.find_one({"_id": "global"})
+        if existing is not None:
+            updates = {}
+            if "services" not in existing:
+                updates["services"] = []
+            if "about" not in existing:
+                updates["about"] = {}
+            basic = existing.get("basic", {})
+            for k in ("qrcode", "icp", "gongan"):
+                if k not in basic:
+                    updates[f"basic.{k}"] = ""
+            if updates:
+                await db.global_config.update_one({"_id": "global"}, {"$set": updates})
 
     # ── 示例日志 ────────────────────────────────────
     if await db.logs.count_documents({}) == 0:

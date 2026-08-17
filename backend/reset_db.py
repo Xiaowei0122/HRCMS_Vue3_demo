@@ -1,7 +1,7 @@
 """Reset MongoDB test database - drop hrcms_test so seed data re-runs on next backend start"""
 from pymongo import MongoClient
 
-URI = "mongodb://admin:Hr85550780@192.168.1.111:32769"
+URI = "mongodb://admin:123456@127.0.0.1:27017"
 DB_NAME = "hrcms_test"
 
 print(f"Connecting to {URI} ...")

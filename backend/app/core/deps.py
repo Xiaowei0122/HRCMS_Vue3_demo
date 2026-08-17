@@ -55,3 +55,31 @@ async def get_optional_user(
         return None
     user = await db.users.find_one({"username": username})
     return user if user else None
+
+
+# ─── RBAC ──────────────────────────────────────────
+
+_ROLE_TYPE_MAP = {
+    "管理员": "admin",
+    "工程师": "engineer",
+    "内部员工": "internal",
+    "外部人员": "normal",
+    "超级管理员": "admin",
+    "技术支持": "engineer",
+    "销售主管": "internal",
+    "财务经理": "internal",
+}
+
+
+def resolve_user_type(user: dict) -> str:
+    """返回用户的 userType（缺失时按中文角色名兜底映射）"""
+    return user.get("userType") or _ROLE_TYPE_MAP.get(user.get("role", ""), "normal")
+
+
+def require_user_types(*allowed_types: str):
+    """RBAC 守卫：校验当前用户 userType 属于允许列表，否则 403"""
+    async def checker(user: dict = Depends(get_current_user)) -> dict:
+        if resolve_user_type(user) not in allowed_types:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="没有操作权限")
+        return user
+    return checker

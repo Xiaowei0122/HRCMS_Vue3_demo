@@ -67,7 +67,7 @@
     </el-card>
 
     <!-- 弹窗 A：抽屉 -->
-    <el-drawer v-model="drawerVisible" :title="activeTask?.status === '已完成' ? '工单详情 (归档)' : '任务详情'" size="400px">
+    <el-drawer v-model="drawerVisible" :title="activeTask?.status === '已完成' ? '工单详情 (归档)' : '任务详情'" size="400px" append-to-body>
       <div v-if="activeTask" class="drawer-content">
         <el-alert v-if="activeTask.status === '已完成'" title="该工单已归档，仅供查阅" type="success" :closable="false" show-icon style="margin-bottom: 15px" />
         
@@ -92,10 +92,10 @@
         
         <div class="drawer-footer" style="margin-top: 30px; text-align: right;">
             <!-- 业务工单操作保持不变 -->
-            <el-button 
-                v-if="activeTask.status !== '已完成' && activeTask.type === 'business'" 
-                type="success" 
-                @click="completeOrder(activeTask.id)"
+            <el-button
+                v-if="activeTask.status !== '已完成' && activeTask.type === 'business'"
+                type="success"
+                @click="completeOrder"
             >       确认完成工单
             </el-button>
             
@@ -111,24 +111,53 @@
     </el-drawer>
 
     <!-- 弹窗 B：快速录入 -->
-    <el-dialog v-model="addDialogVisible" title="快速指派/报备" width="400px" destroy-on-close>
+    <el-dialog v-model="addDialogVisible" title="快速指派 / 报备" width="420px" append-to-body destroy-on-close>
       <el-form :model="addForm" label-width="80px">
         <el-form-item label="任务类型">
           <el-radio-group v-model="addForm.type">
-            <el-radio label="business">业务工单</el-radio>
-            <el-radio label="break">异常锁定</el-radio>
+            <el-radio value="business">业务工单</el-radio>
+            <el-radio value="break">异常锁定</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item :label="addForm.type === 'business' ? '客户名称' : '锁定原因'">
-          <el-input v-model="addForm.company" placeholder="请输入内容" />
+
+        <!-- 业务工单：搜索并选择未指派工单 -->
+        <el-form-item v-if="addForm.type === 'business'" label="关联工单">
+          <el-select
+            v-model="addForm.orderId"
+            filterable
+            remote
+            clearable
+            reserve-keyword
+            :remote-method="searchUnassignedOrders"
+            :loading="orderSearchLoading"
+            placeholder="搜索未指派工单（单位 / 工单号）"
+            style="width: 100%"
+            @visible-change="onOrderSelectVisible"
+          >
+            <el-option
+              v-for="o in unassignedOrders"
+              :key="o.id"
+              :label="`${o.orderNo} · ${o.company}`"
+              :value="o.id"
+            >
+              <span class="opt-no">{{ o.orderNo }}</span>
+              <span class="opt-company">{{ o.company }}</span>
+            </el-option>
+          </el-select>
         </el-form-item>
+
+        <!-- 异常锁定：手动输入原因 -->
+        <el-form-item v-else label="锁定原因">
+          <el-input v-model="addForm.company" placeholder="请输入锁定原因" />
+        </el-form-item>
+
         <el-form-item label="排期时间">
-          <el-tag>{{ addForm.date }} {{ addForm.timeSlot }}</el-tag>
+          <el-tag>{{ addForm.date }} {{ getTimeRange(addForm.timeSlot) }}</el-tag>
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="addDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitQuickAdd">提交录入</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitQuickAdd">提交录入</el-button>
       </template>
     </el-dialog>
   </div>
@@ -139,6 +168,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { ArrowLeft, ArrowRight, Plus, Download } from '@element-plus/icons-vue'
 import { useTaskStore } from '../../store/taskStore'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getUserInfo } from '../../utils/auth'
+import { getRepairList } from '../../api/modules/repairs'
 import dayjs from 'dayjs'
 import * as XLSX from 'xlsx'
 
@@ -148,7 +179,13 @@ const currentMonday = ref(dayjs().startOf('week').add(1, 'day'))
 const drawerVisible = ref(false)
 const addDialogVisible = ref(false)
 const activeTask = ref(null)
-const addForm = ref({ type: 'business', company: '', date: '', timeSlot: '' })
+const addForm = ref({ type: 'business', company: '', orderId: '', date: '', timeSlot: '' })
+const unassignedOrders = ref([])
+const orderSearchLoading = ref(false)
+const submitting = ref(false)
+
+// 仅管理员可指派工单
+const isAdmin = computed(() => getUserInfo()?.userType === 'admin')
 
 // 由选中的工程师名称反查 ID（用于 API 过滤）
 const selectedEngineerId = computed(() => {
@@ -216,15 +253,30 @@ const handleCellClick = (date, slotId, range) => {
     activeTask.value = task
     drawerVisible.value = true
   } else if (status === 'available') {
-    addForm.value = { type: 'business', company: '', date, timeSlot: slotId }
+    if (!isAdmin.value) {
+      ElMessage.warning('仅管理员可指派工单')
+      return
+    }
+    addForm.value = { type: 'business', company: '', orderId: '', date, timeSlot: slotId }
     addDialogVisible.value = true
+    searchUnassignedOrders('')
   }
 }
 
-const completeOrder = (id) => {
-  taskStore.completeTask(id)
-  drawerVisible.value = false
-  ElMessage.success('工单已完结并归档')
+const completeOrder = async () => {
+  const repairId = activeTask.value?.repairId
+  if (!repairId) {
+    ElMessage.warning('该记录未关联报修工单')
+    return
+  }
+  try {
+    await taskStore.completeTask(repairId)
+    await loadSchedule()
+    drawerVisible.value = false
+    ElMessage.success('工单已完结并归档')
+  } catch (e) {
+    ElMessage.error(e.message || '完结工单失败')
+  }
 }
 
 // 释放锁定逻辑整合
@@ -272,9 +324,59 @@ const exportToExcel = () => {
   ElMessage.success('导出成功')
 }
 
-const submitQuickAdd = () => {
-  taskStore.addTask({ ...addForm.value, engineer: selectedEngineer.value, engineerId: selectedEngineerId.value, status: '处理中' })
-  addDialogVisible.value = false
+const searchUnassignedOrders = async (query) => {
+  orderSearchLoading.value = true
+  try {
+    const res = await getRepairList({ status: '待接单', company: query || '', size: 50 })
+    unassignedOrders.value = Array.isArray(res) ? res : (res?.records || [])
+  } catch {
+    unassignedOrders.value = []
+  } finally {
+    orderSearchLoading.value = false
+  }
+}
+
+const onOrderSelectVisible = (visible) => {
+  if (visible) searchUnassignedOrders('')
+}
+
+const submitQuickAdd = async () => {
+  const f = addForm.value
+  submitting.value = true
+  try {
+    if (f.type === 'business') {
+      if (!f.orderId) {
+        ElMessage.warning('请选择要指派的工单')
+        return
+      }
+      await taskStore.assignOrder(f.orderId, {
+        engineerId: selectedEngineerId.value,
+        engineerName: selectedEngineer.value,
+        timeSlot: f.timeSlot,
+        date: f.date,
+      })
+    } else {
+      if (!f.company.trim()) {
+        ElMessage.warning('请填写锁定原因')
+        return
+      }
+      await taskStore.lockSlot({
+        engineerId: selectedEngineerId.value,
+        engineer: selectedEngineer.value,
+        date: f.date,
+        timeSlot: f.timeSlot,
+        type: 'break',
+        company: f.company.trim(),
+        status: '处理中',
+      })
+    }
+    addDialogVisible.value = false
+    ElMessage.success('排期已更新')
+  } catch (e) {
+    ElMessage.error(e.message || '操作失败')
+  } finally {
+    submitting.value = false
+  }
 }
 
 const getCurrentNode = (task) => {
@@ -295,36 +397,38 @@ const resetWeek = () => { currentMonday.value = dayjs().startOf('week').add(1, '
 <style scoped>
 .personal-schedule-container { padding: 15px; }
 .header-flex { display: flex; justify-content: space-between; align-items: center; }
-.matrix-wrapper { margin-top: 20px; border: 1px solid #ebeef5; border-radius: 8px; overflow: hidden; }
+.matrix-wrapper { margin-top: 20px; border: 1px solid var(--border-color); border-radius: var(--radius-md); overflow: hidden; }
 .schedule-matrix { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.schedule-matrix th, .schedule-matrix td { border: 1px solid #ebeef5; padding: 12px 8px; text-align: center; }
-thead th { background: #f8f9fb; color: #606266; font-weight: 600; }
-thead th.is-today { background: #ecf5ff; color: #409eff; }
+.schedule-matrix th, .schedule-matrix td { border: 1px solid var(--border-color); padding: 12px 8px; text-align: center; }
+thead th { background: var(--bg-muted); color: var(--text-secondary); font-weight: 600; }
+thead th.is-today { background: var(--color-info-bg); color: var(--color-accent); }
 .time-col { width: 120px; }
-.time-slot-label { background: #f8f9fb; }
+.time-slot-label { background: var(--bg-muted); }
 .matrix-cell { height: 100px; vertical-align: middle; transition: all 0.2s; cursor: pointer; position: relative; background-color: #fcfcfc; }
 
 /* 还原上一版浅灰色 UI，不突兀 */
-.matrix-cell.available:hover { background: #f0f9eb; }
+.matrix-cell.available:hover { background: var(--color-success-bg); }
 .matrix-cell.available .empty-slot { color: #c0c4cc; font-size: 12px; }
 
 /* 占用状态 */
-.matrix-cell.occupied { background: #ecf5ff; border-left: 4px solid #409eff; }
+.matrix-cell.occupied { background: var(--color-info-bg); border-left: 4px solid var(--color-accent); }
 
 /* 已完成状态：弱化显示 */
-.matrix-cell.finished { background: #f5f7fa; border-left: 4px solid #67c23a; opacity: 0.7; }
+.matrix-cell.finished { background: var(--bg-muted); border-left: 4px solid var(--color-success); opacity: 0.7; }
 
 /* 锁定状态 */
 .matrix-cell.locked { background: #f2f2f2; border-left: 4px solid #909399; }
 
 /* 超时警示 */
-.matrix-cell.overtime { background: #fef0f0; border-left: 4px solid #f56c6c; animation: blink-bg 2s infinite; }
+.matrix-cell.overtime { background: var(--color-danger-bg); border-left: 4px solid var(--color-danger); animation: blink-bg 2s infinite; }
 @keyframes blink-bg { 50% { background-color: #fff; } }
 
-.matrix-cell.expired { background: #f5f7fa; cursor: not-allowed; }
+.matrix-cell.expired { background: var(--bg-muted); cursor: not-allowed; }
 .expired-text { color: #dcdfe6; }
 
 .task-card { padding: 4px; text-align: left; }
-.comp-name { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #303133; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comp-name { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drawer-content { padding: 0 10px; }
+.opt-no { float: left; color: var(--text-primary); }
+.opt-company { float: right; color: var(--text-secondary); font-size: 12px; }
 </style>

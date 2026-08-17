@@ -4,11 +4,17 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types, resolve_user_type
 from app.core.response import success, error, paginate
 from app.core.security import generate_order_no
 
 router = APIRouter(tags=["报修管理"])
+
+# RBAC 依赖（混合路由：不同端点不同角色）
+_engineer = Depends(require_user_types("admin", "internal", "engineer"))
+_manage = Depends(require_user_types("admin", "internal"))
+_admin = Depends(require_user_types("admin"))
+_assign = Depends(require_user_types("admin", "engineer"))
 
 
 # ─── 报修 CRUD ──────────────────────────────────────
@@ -40,7 +46,7 @@ async def create_repair(
         "engineerId": body.get("engineerId", ""),
         "status": "待接单",
         "progress": [
-            {"node": "工单已创建，系统自动派发", "time": datetime.now(timezone.utc).strftime("%H:%M"), "status": "done"},
+            {"node": "工单已创建，系统自动派发", "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"), "status": "done"},
         ],
         "createTime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "createdBy": user.get("username", ""),
@@ -73,9 +79,9 @@ async def get_repair_list(
     status: str = "",
     company: str = "",
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _engineer,
 ):
-    """获取全部工单列表（管理员）"""
+    """获取全部工单列表（管理员/工程师）"""
     filter_q = {}
     if status:
         filter_q["status"] = status
@@ -105,7 +111,7 @@ async def get_engineer_schedule(
     engineerId: str = "",
     date: str = "",
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _engineer,
 ):
     """获取工程师排期"""
     filter_q = {}
@@ -118,6 +124,7 @@ async def get_engineer_schedule(
     async for s in cursor:
         record = {
             "id": str(s["_id"]),
+            "repairId": s.get("repairId", ""),
             "engineerId": s.get("engineerId", ""),
             "engineer": s.get("engineer", ""),
             "date": s.get("date", ""),
@@ -146,7 +153,7 @@ async def get_engineer_schedule(
 async def create_schedule_entry(
     body: dict = Body(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _admin,
 ):
     """创建排期条目"""
     doc = {**body, "createdAt": datetime.now(timezone.utc)}
@@ -158,11 +165,22 @@ async def create_schedule_entry(
 async def delete_schedule_entry(
     schedule_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _admin,
 ):
     """删除排期条目"""
     await db.repair_schedule.delete_one({"_id": ObjectId(schedule_id)})
     return success(None, "排期已删除")
+
+
+# ─── 工程师列表（静态路由，必须在 /repairs/{repair_id} 之前）─────
+
+@router.get("/repairs/engineers")
+async def get_repairs_engineers(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """获取工程师列表 — /repairs/engineers（前端 store 调用）"""
+    return await _get_engineers(db)
 
 
 # ─── 参数化路由（必须在所有静态路由之后）─────────────
@@ -185,14 +203,31 @@ async def assign_repair(
     repair_id: str,
     body: dict = Body(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _assign,
 ):
-    """指派工程师 — 同时同步到排期表"""
-    eng_name = body.get("engineerName", "")
-    eng_id = body.get("engineerId", "")
+    """指派工程师 — 管理员可指派任意工程师，工程师仅可自助接单；同步到排期表"""
+    if resolve_user_type(user) == "admin":
+        # 管理员：指派给指定工程师
+        eng_name = body.get("engineerName", "")
+        eng_id = body.get("engineerId", "")
+    else:
+        # 工程师：自助接单，按 username 关联工程师档案，强制指派给自己
+        eng_doc = await db.engineers.find_one({"username": user.get("username", "")})
+        if eng_doc:
+            eng_name = eng_doc.get("name", "")
+            eng_id = str(eng_doc["_id"])
+        else:
+            # 兜底：无关联档案时退化为登录账号身份
+            eng_name = user.get("realName", user.get("username", ""))
+            eng_id = str(user.get("_id", ""))
+
+    if not eng_name or not eng_id:
+        return error(400, "请选择工程师")
 
     # 获取报修信息用于排期
     repair = await db.repairs.find_one({"_id": ObjectId(repair_id)})
+    if not repair:
+        return error(404, "工单不存在")
 
     await db.repairs.update_one(
         {"_id": ObjectId(repair_id)},
@@ -200,19 +235,19 @@ async def assign_repair(
     )
     await _add_progress(db, repair_id, f"已指派工程师：{eng_name}", "done")
 
-    # 自动同步到排期表
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    # 自动同步到排期表（支持指定日期/时段）
+    schedule_date = body.get("date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     existing = await db.repair_schedule.find_one({
-        "engineerId": eng_id, "date": today, "repairId": repair_id
+        "engineerId": eng_id, "date": schedule_date, "repairId": repair_id
     })
     if not existing:
         await db.repair_schedule.insert_one({
             "engineerId": eng_id,
             "engineer": eng_name,
-            "date": today,
+            "date": schedule_date,
             "timeSlot": body.get("timeSlot", "全天"),
             "type": "business",
-            "company": repair.get("company", "") if repair else "",
+            "company": repair.get("company", ""),
             "repairId": repair_id,
             "status": "处理中",
             "createdAt": datetime.now(timezone.utc),
@@ -226,7 +261,7 @@ async def add_repair_progress(
     repair_id: str,
     body: dict = Body(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _engineer,
 ):
     """添加工单进度"""
     node = body.get("node", "")
@@ -239,7 +274,7 @@ async def add_repair_progress(
 async def complete_repair(
     repair_id: str,
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _engineer,
 ):
     """完结工单"""
     await _add_progress(db, repair_id, "工单已处理完成，系统自动归档", "done")
@@ -252,7 +287,7 @@ async def transfer_repair(
     repair_id: str,
     body: dict = Body(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _engineer,
 ):
     """转单 — 将工单转给另一位工程师"""
     target_name = body.get("targetEngineerName", body.get("engineerName", ""))
@@ -272,16 +307,7 @@ async def transfer_repair(
     return success(None, "转单成功")
 
 
-# ─── 工程师（两个路由入口：/engineers 和 /repairs/engineers）─────
-
-@router.get("/repairs/engineers")
-async def get_repairs_engineers(
-    db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
-):
-    """获取工程师列表 — /repairs/engineers（前端 store 调用）"""
-    return await _get_engineers(db)
-
+# ─── 工程师（备用入口 /engineers）─────
 
 @router.get("/engineers")
 async def get_engineer_list(
@@ -302,6 +328,7 @@ async def _get_engineers(db: AsyncIOMotorDatabase):
         records.append({
             "id": str(e["_id"]),
             "name": e.get("name", ""),
+            "username": e.get("username", ""),
             "phone": e.get("phone", ""),
             "avatar": e.get("avatar", ""),
             "skills": e.get("skills", []),
@@ -348,7 +375,7 @@ async def _add_progress(db: AsyncIOMotorDatabase, repair_id: str, node: str, sta
         {"_id": ObjectId(repair_id)},
         {"$push": {"progress": {
             "node": node,
-            "time": datetime.now(timezone.utc).strftime("%H:%M"),
+            "time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"),
             "status": status,
         }}},
     )

@@ -3,7 +3,7 @@ import dayjs from 'dayjs'
 import {
   getEngineerList, getEngineerSchedule,
   createScheduleEntry, deleteScheduleEntry,
-  createRepair, assignRepair, completeRepair as apiCompleteRepair
+  assignRepair, completeRepair as apiCompleteRepair
 } from '@/api/modules/repairs'
 
 export const useTaskStore = defineStore('task', {
@@ -85,55 +85,35 @@ export const useTaskStore = defineStore('task', {
     },
 
     /**
-     * 新增任务（业务报修 或 锁定时段）
+     * 指派已有工单（业务工单 → 指派到排期）
      */
-    async addTask(payload) {
+    async assignOrder(orderId, payload) {
       try {
-        if (payload.type === 'business') {
-          // ① 创建报修工单
-          const result = await createRepair({
-            company: payload.company,
-            contact: payload.contact || '',
-            phone: payload.phone || '',
-            address: payload.address || '',
-            priority: payload.priority || '普通',
-            description: payload.description || '',
-          })
-          // ② 指派工程师 → 自动同步排期表（repair_schedule）
-          if (result?.id) {
-            await assignRepair(result.id, {
-              engineerId: payload.engineerId,
-              engineerName: payload.engineer,
-              timeSlot: payload.timeSlot,
-            })
-          }
-        } else {
-          // 锁定时段走排期接口
-          await createScheduleEntry(payload)
-        }
-        // 成功后刷新列表
-        await this.fetchSchedule()
+        await assignRepair(orderId, payload)
+        await this.fetchSchedule({ engineerId: payload.engineerId })
       } catch {
-        throw new Error('操作失败')
+        throw new Error('指派工单失败')
       }
     },
 
     /**
-     * 完结工单
+     * 锁定时段（异常锁定 → 手动录入排期）
      */
-    async completeTask(taskId) {
+    async lockSlot(payload) {
       try {
-        await apiCompleteRepair(taskId)
-        // 乐观更新本地
-        const task = this.allTasks.find(t => t.id === taskId)
-        if (task) {
-          task.status = '已完成'
-          task.progress.push({
-            node: '工单已处理完成，系统自动归档',
-            time: dayjs().format('HH:mm'),
-            status: 'done'
-          })
-        }
+        await createScheduleEntry(payload)
+        await this.fetchSchedule({ engineerId: payload.engineerId })
+      } catch {
+        throw new Error('锁定时段失败')
+      }
+    },
+
+    /**
+     * 完结工单（按 repairId）
+     */
+    async completeTask(repairId) {
+      try {
+        await apiCompleteRepair(repairId)
       } catch {
         throw new Error('完结工单失败')
       }

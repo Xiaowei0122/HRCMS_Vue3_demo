@@ -27,10 +27,10 @@
           </el-input>
           
           <el-radio-group v-model="filterStatus" class="status-filter" @change="handleStatusFilter">
-            <el-radio-button label="全部" />
-            <el-radio-button label="待接单" />
-            <el-radio-button label="处理中" />
-            <el-radio-button label="已完成" />
+            <el-radio-button value="全部" />
+            <el-radio-button value="待接单" />
+            <el-radio-button value="处理中" />
+            <el-radio-button value="已完成" />
           </el-radio-group>
         </div>
         
@@ -74,7 +74,7 @@
           <template #default="scope">
             <el-button link type="primary" @click="viewDetail(scope.row)">详情</el-button>
             <el-divider direction="vertical" />
-            <el-button link type="success" v-if="scope.row.status === '待接单'" @click="openAssignDialog(scope.row)">指派</el-button>
+            <el-button link type="success" v-if="isAdmin && scope.row.status === '待接单'" @click="openAssignDialog(scope.row)">指派</el-button>
             <el-button link type="warning" v-else @click="viewDetail(scope.row)">催办</el-button>
           </template>
         </el-table-column>
@@ -206,7 +206,7 @@
             <div class="eng-name">{{ eng.name }}</div>
             <div class="eng-detail">{{ eng.phone || '' }} · {{ eng.team || '工号未分组' }}</div>
           </div>
-          <el-icon v-if="selectedEngineerId === eng.id" color="#409eff" :size="20"><CircleCheck /></el-icon>
+          <el-icon v-if="selectedEngineerId === eng.id" color="var(--color-accent)" :size="20"><CircleCheck /></el-icon>
         </div>
       </div>
 
@@ -228,15 +228,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   Search, Plus, Bell, Pointer, Tools, CircleCheck, Warning, InfoFilled, Check
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getRepairList, getRepairStats, createRepair, getEngineerList, assignRepair } from '@/api/modules/repairs'
+import { getUserInfo } from '@/utils/auth'
 
 const router = useRouter()
+
+// 仅管理员可指派工单
+const isAdmin = computed(() => getUserInfo()?.userType === 'admin')
 
 // --- 状态变量 ---
 const dialogVisible = ref(false)
@@ -443,48 +447,48 @@ onMounted(() => {
 }
 .stat-card {
   flex: 1;
-  background: #fff;
-  border-radius: 8px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
   padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-card);
   border-left: 5px solid #ccc;
   transition: all 0.3s;
 }
 .stat-card:hover { transform: translateY(-4px); box-shadow: 0 4px 16px 0 rgba(0,0,0,0.1); }
 
-.danger { border-left-color: #f56c6c; background: linear-gradient(to right, #fffafa, #fff); }
-.primary { border-left-color: #409eff; background: linear-gradient(to right, #f5faff, #fff); }
-.warning { border-left-color: #e6a23c; background: linear-gradient(to right, #fdfaf5, #fff); }
-.success { border-left-color: #67c23a; background: linear-gradient(to right, #f7fdf5, #fff); }
-.info { border-left-color: #909399; background: linear-gradient(to right, #f9f9f9, #fff); }
+.danger { border-left-color: var(--color-danger); background: linear-gradient(to right, #fffafa, #fff); }
+.primary { border-left-color: var(--color-accent); background: linear-gradient(to right, #f5faff, #fff); }
+.warning { border-left-color: var(--color-warning); background: linear-gradient(to right, #fdfaf5, #fff); }
+.success { border-left-color: var(--color-success); background: linear-gradient(to right, #f7fdf5, #fff); }
+.info { border-left-color: var(--text-muted); background: linear-gradient(to right, #f9f9f9, #fff); }
 
-.stat-label { font-size: 14px; color: #606266; margin-bottom: 8px; }
-.stat-number { font-size: 28px; font-weight: bold; color: #303133; }
+.stat-label { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+.stat-number { font-size: 28px; font-weight: bold; color: var(--text-primary); }
 .stat-icon { font-size: 40px; opacity: 0.15; color: inherit; }
 
 /* 表格与工具栏 */
-.table-card { border-radius: 8px; border: none; }
+.table-card { border-radius: var(--radius-md); border: none; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .left-group { display: flex; align-items: center; gap: 20px; }
 .search-input { width: 280px; }
 
 .status-wrapper { display: flex; align-items: center; }
 .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; display: inline-block; }
-.dot-danger { background: #f56c6c; box-shadow: 0 0 5px #f56c6c; }
-.dot-primary { background: #409eff; box-shadow: 0 0 5px #409eff; }
-.dot-warning { background: #e6a23c; box-shadow: 0 0 5px #e6a23c; }
-.dot-success { background: #67c23a; box-shadow: 0 0 5px #67c23a; }
+.dot-danger { background: var(--color-danger); box-shadow: 0 0 5px var(--color-danger); }
+.dot-primary { background: var(--color-accent); box-shadow: 0 0 5px var(--color-accent); }
+.dot-warning { background: var(--color-warning); box-shadow: 0 0 5px var(--color-warning); }
+.dot-success { background: var(--color-success); box-shadow: 0 0 5px var(--color-success); }
 
-.eng-name { color: #409eff; font-weight: 500; }
+.eng-name { color: var(--color-accent); font-weight: 500; }
 .pagination-container { margin-top: 25px; display: flex; justify-content: flex-end; }
 
 /* 弹窗样式 */
 .form-notice {
-  background: #f0f9eb;
-  color: #67c23a;
+  background: var(--color-success-bg);
+  color: var(--color-success);
   padding: 12px 16px;
   border-radius: 4px;
   display: flex;
@@ -506,21 +510,21 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border: 1px solid #ebeef5;
-  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s;
   gap: 12px;
 }
-.engineer-option:hover { border-color: #409eff; background: #f5faff; }
-.engineer-option.selected { border-color: #409eff; background: #ecf5ff; box-shadow: 0 0 0 2px rgba(64,158,255,0.15); }
+.engineer-option:hover { border-color: var(--color-accent); background: var(--color-info-bg); }
+.engineer-option.selected { border-color: var(--color-accent); background: var(--color-info-bg); box-shadow: 0 0 0 2px rgba(64,158,255,0.15); }
 .eng-avatar {
   width: 40px; height: 40px; border-radius: 50%;
-  background: linear-gradient(135deg, #409eff, #36d1dc);
+  background: linear-gradient(135deg, var(--color-accent), #36d1dc);
   color: #fff; display: flex; align-items: center; justify-content: center;
   font-size: 16px; font-weight: bold; flex-shrink: 0;
 }
 .eng-info { flex: 1; }
-.eng-info .eng-name { font-size: 15px; font-weight: 600; color: #303133; }
-.eng-info .eng-detail { font-size: 12px; color: #909399; margin-top: 4px; }
+.eng-info .eng-name { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.eng-info .eng-detail { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
 </style>

@@ -1,10 +1,8 @@
-<!--
-  空状态组件 — 列表为空时的占位展示
--->
+<!--  空状态组件 — 使用 SVG 图标  -->
 <template>
   <view class="empty-state">
     <view class="empty-icon-wrapper">
-      <text class="empty-icon">{{ icon }}</text>
+      <SvgIcon :name="iconName" :size="40" color="#94A3B8" />
     </view>
     <text class="empty-title">{{ text }}</text>
     <text class="empty-sub" v-if="subText">{{ subText }}</text>
@@ -12,11 +10,22 @@
 </template>
 
 <script setup>
-defineProps({
-  icon: { type: String, default: '📭' },
+import SvgIcon from './SvgIcon.vue'
+
+const props = defineProps({
+  icon: { type: String, default: 'tray' },
   text: { type: String, default: '暂无数据' },
   subText: { type: String, default: '' }
 })
+
+// Map old emoji → SVG icon name
+const iconMap = {
+  '📋': 'clipboard', '📦': 'package', '✉️': 'envelope',
+  '📭': 'tray', '🔧': 'wrench', '📞': 'phone'
+}
+
+import { computed } from 'vue'
+const iconName = computed(() => iconMap[props.icon] || props.icon || 'tray')
 </script>
 
 <style lang="scss" scoped>
@@ -25,39 +34,34 @@ defineProps({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 120rpx 40rpx;
-  animation: fadeInUp 0.5s ease;
+  padding: 60px 20px;
+  animation: fade-in-up 0.5s ease;
 }
 
 .empty-icon-wrapper {
-  width: 120rpx;
-  height: 120rpx;
+  width: 88px; height: 88px;
   border-radius: 50%;
-  background: #F0F0F0;
+  background: #F1F5F9;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24rpx;
-}
-
-.empty-icon {
-  font-size: 56rpx;
+  margin-bottom: 12px;
 }
 
 .empty-title {
-  font-size: 28rpx;
-  color: #999;
+  font-size: 14px;
+  color: #64748B;
   display: block;
 }
 
 .empty-sub {
-  font-size: 24rpx;
-  color: #ccc;
-  margin-top: 8rpx;
+  font-size: 12px;
+  color: #94A3B8;
+  margin-top: 4px;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(40rpx); }
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 </style>

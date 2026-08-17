@@ -7,10 +7,10 @@ from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import openpyxl
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types
 from app.core.response import success, error, paginate
 
-router = APIRouter(prefix="/products", tags=["产品管理"])
+router = APIRouter(prefix="/products", tags=["产品管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
 
 
 @router.get("")
@@ -34,6 +34,37 @@ async def get_product_list(
     async for p in cursor:
         records.append(_format_product(p))
     return success(paginate(records, total, page, size))
+
+
+@router.get("/export")
+async def export_products(
+    category: str = "",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    filter_q = {}
+    if category:
+        filter_q["category"] = category
+    cursor = db.products.find(filter_q)
+    products = []
+    async for p in cursor:
+        products.append(p)
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "产品列表"
+    ws.append(["名称", "价格", "识别速度", "功能", "库存", "分类"])
+    for p in products:
+        ws.append([p.get("name"), p.get("price"), p.get("speed"), p.get("function"), p.get("stock"), p.get("category")])
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=products.xlsx"},
+    )
 
 
 @router.get("/{product_id}")
@@ -79,37 +110,6 @@ async def delete_product(
 ):
     await db.products.delete_one({"_id": ObjectId(product_id)})
     return success(None, "产品已删除")
-
-
-@router.get("/export")
-async def export_products(
-    category: str = "",
-    db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
-):
-    filter_q = {}
-    if category:
-        filter_q["category"] = category
-    cursor = db.products.find(filter_q)
-    products = []
-    async for p in cursor:
-        products.append(p)
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    ws.title = "产品列表"
-    ws.append(["名称", "价格", "识别速度", "功能", "库存", "分类"])
-    for p in products:
-        ws.append([p.get("name"), p.get("price"), p.get("speed"), p.get("function"), p.get("stock"), p.get("category")])
-
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
-    return StreamingResponse(
-        output,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=products.xlsx"},
-    )
 
 
 def _format_product(p: dict) -> dict:

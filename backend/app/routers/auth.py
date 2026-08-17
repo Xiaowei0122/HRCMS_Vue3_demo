@@ -41,7 +41,7 @@ async def register(body: dict, db: AsyncIOMotorDatabase = Depends(get_db)):
     doc = {
         "username": username,
         "realName": real_name,
-        "role": "",
+        "role": "外部人员",
         "userType": "normal",
         "phone": phone,
         "hashedPassword": hash_password(password),

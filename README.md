@@ -246,3 +246,72 @@ HRCMS_VUE3/
 | 其他 | — | products(3), news(3), honors(3), brands(3), cases(2), leads(2) |
 
 ---
+
+## Ver 0.8 — 售后报修小程序 · 财务模块 · 公开门户 · 权限体系升级 (2026-08-17)
+
+版本定位：系统从「管理后台」扩展为「后台 + 移动端 + 对外门户」三位一体的完整闭环，核心业务下沉到移动端。
+
+---
+
+### 📱 售后报修小程序（miniprogram — 新增）
+
+- **技术栈**：uni-app（Vue 3 + Pinia + Vue Router），可编译发布至微信小程序（mp-weixin）与 H5 双端
+- **应用名称**：鸿瑞售后报修（`miniprogram/src/manifest.json`）
+- **页面结构**（`src/pages/`，共 11 个页面）：
+  - **公共页**：登录 / 注册 / 首页（鸿瑞售后服务中心）
+  - **报修主流程**：一键报修（repair-apply）、我的报修（my-repairs）、工单详情（repair-detail，含进度时间线）
+  - **业务页**：工程师排期（schedule）、投诉建议（complaint）、联系我们（contact）
+  - **工程师端**：所有工单（all-orders）、我的工单（my-orders）
+- **组件库**：`CustomTabBar`（自定义底部导航）、`OrderCard`（工单卡片）、`ScheduleTable`（排期表）、`TimeLine`（进度时间线）、`EmptyState`（空状态）、`SvgIcon`（SVG 图标）
+- **状态管理**（`src/stores/`）：`auth.js`（登录态 + 四级角色判断）、`repair.js`（工单/排期/工程师/统计）
+- **请求封装**（`src/utils/request.js`）：基于 `uni.request`，自动注入 JWT、401 过期跳登录、统一错误 Toast、自动解包 `{ code, data }` 响应
+- **状态常量**（`src/utils/repair-status.js`）：状态/优先级/排期时段（AM1~PM3）与 CMS 端完全对齐
+- **对接真实 API**：登录/注册、报修 CRUD、工程师接单、管理员指派、进度追加、工单完成、转单、排期、统计全链路
+- **路由守卫**：登录检查 + 角色分级权限（工程师/内部员工/外部人员/管理员各自可见页面不同）
+
+### 🔐 权限与角色体系升级（RBAC 重构）
+
+- **四级 userType 体系**：`admin`（管理员）/ `internal`（内部员工）/ `engineer`（工程师）/ `normal`（外部人员）
+- **角色命名重构**：由原「超级管理员 / 销售主管 / 技术支持 / 财务经理」统一为「管理员 / 内部员工 / 工程师 / 外部人员」
+- **兜底映射**：`deps.py` 新增 `_ROLE_TYPE_MAP` 与 `resolve_user_type()`，老数据按中文角色名自动归位
+- **RBAC 守卫**：`require_user_types()` 统一后端接口权限校验，`get_optional_user()` 支持可选认证
+- **小程序注册**：新增 `POST /auth/register`，注册默认归属「外部人员」，注册即返回登录态
+- **前端路由级访问控制**：`router/index.js` 新增 `ROLE_ACCESS` 映射表 + `canAccessRoute()`，按 userType 精确控制菜单与页面可见性，无权限自动跳转仪表盘
+
+### 💰 财务管理模块（finance — 新增）
+
+- **后端路由** `finance.py`（权限：admin + internal）：
+  - **共享文件**：上传 / 列表 / 编辑 / 删除 / 权限控制（可见性），支持分类（发票/报告/政策/合同/其他）、20MB 大小限制、文件类型白名单
+  - **资产管理**：资产 CRUD、状态流转（在用/维修/闲置等）、维保记录（maintenance）增查
+- **前端页面**：`finance/SharedFiles.vue`（共享文件）、`finance/AssetManage.vue`（资产管理）
+- **权限树**：新增「财务管理」节点，含 `finance:files`、`finance:assets` 两个子权限
+
+### 🌐 公开门户接口（public — 新增）
+
+- **定位**：无需登录的只读接口，供官网（HRhomepage_vue3）等公开站点读取
+- **`public.py` 路由**：
+  - `/public/config`：站点全局配置（轮播/服务/关于/联系/备案号/地图）
+  - `/public/banners`、`/public/brands`、`/public/cases`、`/public/honors`：展示数据只读
+  - `/public/news` + `/public/news/{id}`：新闻列表与详情，详情自动浏览量自增，仅返回已发布（`isPublished`）内容
+  - `/public/products` + `/public/products/{id}`：产品列表与详情
+  - `/public/leads`：官网「联系我们」表单提交，自动落库为线索（待跟进）
+
+### ⚙️ 前端工程化与配置增强
+
+- **MainLayout 重构**：侧边栏逻辑组件化整合（原 `Sidebar.vue` 合并），菜单按角色动态渲染，新增「财务管理」入口
+- **GlobalConfig 增强**：支持服务板块、关于我们、轮播图、联系信息、地图坐标等官网所需配置
+- **config API 模块扩展**：新增 `services` / `about` / `banners` / `contact` / `map` 等接口封装
+- **代码清理**：移除冗余的 `style.css`、`counter.js`、`RepairForm.vue` 等历史遗留文件
+
+### 🗄️ 种子数据升级
+
+- **权限树**：新增「财务管理」及两个子权限节点
+- **角色体系**：4 种角色（管理员/内部员工/工程师/外部人员）替换原角色，权限码重新分配
+- **小程序测试账号**：`user`（外部人员）/ `suser`（内部员工）/ `engineer`（工程师），密码统一 `123456`
+- **老数据迁移**：已有 `admin`、`zhangsan`、`lisi` 账号自动补齐 `userType` 字段，实现平滑升级
+
+---
+
+> **最后更新**：2026-08-17
+
+---

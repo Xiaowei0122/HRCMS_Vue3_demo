@@ -91,16 +91,36 @@ const router = createRouter({
   }
 })
 
-// 路由守卫 — 登录检查
+// 路由守卫 — 登录检查 + 角色权限
 router.beforeEach((to, _from, next) => {
   document.title = to.meta.title || '鸿瑞售后报修'
   if (to.meta.noAuth) {
     return next()
   }
-  const token = localStorage.getItem('token')
+  const token = uni.getStorageSync('token')
   if (!token && to.path !== '/pages/public/login/index') {
     return next('/pages/public/login/index')
   }
+
+  // 角色权限校验
+  const userInfo = uni.getStorageSync('userInfo')
+  const userType = userInfo?.userType || 'normal'
+
+  // 所有工单页 — 仅工程师
+  if (to.path === '/pages/engineer/all-orders/index' && userType !== 'engineer' && userType !== 'admin') {
+    return next('/pages/public/home/index')
+  }
+  // 我的工单页(工程师版) — 仅工程师
+  if (to.path === '/pages/engineer/my-orders/index' && userType !== 'engineer' && userType !== 'admin') {
+    return next('/pages/my-repairs/index')
+  }
+  // 排期页 — 内部员工 + 管理员
+  if (to.path === '/pages/schedule/index') {
+    if (userType !== 'internal' && userType !== 'admin') {
+      return next('/pages/public/home/index')
+    }
+  }
+
   next()
 })
 

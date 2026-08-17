@@ -4,10 +4,12 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types
 from app.core.response import success, error, paginate
 
 router = APIRouter(prefix="/complaints", tags=["投诉管理"])
+
+_manage = Depends(require_user_types("admin", "internal"))
 
 
 @router.get("")
@@ -16,7 +18,7 @@ async def get_complaint_list(
     size: int = 10,
     status: str = "",
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _manage,
 ):
     filter_q = {}
     if status:
@@ -59,7 +61,9 @@ async def create_complaint(
         "title": body.get("title", ""),
         "content": body.get("content", ""),
         "contact": body.get("contact", ""),
-        "status": "pending",
+        "priority": body.get("priority", "普通"),
+        "target": body.get("target", ""),
+        "status": "待处理",
         "reply": "",
         "createTime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "createdBy": user.get("username", ""),
@@ -72,7 +76,7 @@ async def create_complaint(
 @router.get("/stats")
 async def get_complaint_stats(
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _manage,
 ):
     return success({
         "total": await db.complaints.count_documents({}),
@@ -87,7 +91,7 @@ async def process_complaint(
     complaint_id: str,
     body: dict = Body(...),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _manage,
 ):
     update = {"status": "处理中"}
     if body.get("result"):
@@ -101,7 +105,7 @@ async def close_complaint(
     complaint_id: str,
     body: dict | None = Body(None),
     db: AsyncIOMotorDatabase = Depends(get_db),
-    user: dict = Depends(get_current_user),
+    user: dict = _manage,
 ):
     result_text = body.get("result", "") if body else ""
     await db.complaints.update_one(
@@ -118,8 +122,13 @@ def _fmt(c: dict) -> dict:
         "title": c.get("title", c.get("content", "")),
         "content": c.get("content", ""),
         "contact": c.get("contact", ""),
-        "status": c.get("status", "pending"),
+        "customer": c.get("customer", c.get("contact", "")),
+        "target": c.get("target", ""),
+        "category": c.get("category", c.get("type", "")),
+        "priority": c.get("priority", "普通"),
+        "status": c.get("status", "待处理"),
         "reply": c.get("reply", c.get("result", "")),
+        "result": c.get("result", c.get("reply", "")),
         "createTime": c.get("createTime", c.get("date", "")),
         "createdBy": c.get("createdBy", ""),
     }

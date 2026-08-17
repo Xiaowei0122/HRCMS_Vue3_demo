@@ -4,11 +4,11 @@ import uuid
 from fastapi import APIRouter, Depends, UploadFile, File, Form
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types
 from app.core.response import success, error
 from app.core.config import settings
 
-router = APIRouter(prefix="/upload", tags=["文件上传"])
+router = APIRouter(prefix="/upload", tags=["文件上传"], dependencies=[Depends(require_user_types("admin", "internal"))])
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".xlsx", ".xls", ".docx", ".doc"}
 ALLOWED_CATEGORIES = {"products", "news", "honors", "banners", "avatars", "logos"}

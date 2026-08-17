@@ -20,7 +20,7 @@
         <el-table-column prop="realName" label="姓名" width="120" />
         <el-table-column prop="role" label="角色" width="150">
           <template #default="{ row }">
-            <el-tag :type="row.role === '超级管理员' ? 'danger' : 'success'">{{ row.role }}</el-tag>
+            <el-tag :type="roleTagType(row.role)">{{ row.role || '未分配' }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="phone" label="联系电话" width="150" />
@@ -53,7 +53,7 @@
     </el-card>
 
     <!-- 新增/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '修改成员信息' : '新增成员账号'" width="450px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '修改成员信息' : '新增成员账号'" width="450px" append-to-body>
       <el-form :model="userForm" label-width="80px">
         <el-form-item label="登录账号">
           <el-input v-model="userForm.username" :disabled="isEdit" placeholder="建议使用拼音或手机号" />
@@ -63,10 +63,10 @@
         </el-form-item>
         <el-form-item label="分配角色">
           <el-select v-model="userForm.role" placeholder="选择角色" style="width: 100%">
-            <el-option label="超级管理员" value="超级管理员" />
-            <el-option label="销售主管" value="销售主管" />
-            <el-option label="技术支持" value="技术支持" />
-            <el-option label="财务经理" value="财务经理" />
+            <el-option label="管理员" value="管理员" />
+            <el-option label="内部员工" value="内部员工" />
+            <el-option label="工程师" value="工程师" />
+            <el-option label="外部人员" value="外部人员" />
           </el-select>
         </el-form-item>
         <el-form-item label="联系电话">
@@ -91,6 +91,16 @@ import {
   getUserList, createUser, updateUser, deleteUser,
   toggleUserStatus, resetUserPassword
 } from '@/api/modules/users'
+
+const roleTagType = (role) => {
+  const map = {
+    '管理员': 'danger',
+    '内部员工': 'warning',
+    '工程师': 'success',
+    '外部人员': 'info'
+  }
+  return map[role] || 'info'
+}
 
 const query = reactive({ name: '', page: 1, size: 10 })
 const dialogVisible = ref(false)

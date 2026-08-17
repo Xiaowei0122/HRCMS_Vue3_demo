@@ -19,9 +19,18 @@ export const useRepairStore = defineStore('repair', () => {
     return await post('/repairs', formData)
   }
 
+  // 列表查询参数归一化：前端 pageSize → 后端 size，过滤空状态
+  const _listQuery = (params = {}) => {
+    const q = { page: params.page || 1, size: params.pageSize || params.size || 10 }
+    if (params.status) q.status = params.status
+    if (params.company) q.company = params.company
+    if (params.engineerId) q.engineerId = params.engineerId
+    return q
+  }
+
   // ── 我的报修列表 ──
   const fetchMyRepairs = async (params = {}) => {
-    const res = await get('/repairs/my', params)
+    const res = await get('/repairs/my', _listQuery(params))
     // backend paginate: { records, total, page, size }
     myRepairs.value = res?.records || res || []
     return myRepairs.value
@@ -29,7 +38,7 @@ export const useRepairStore = defineStore('repair', () => {
 
   // ── 所有工单（工程师端） ──
   const fetchAllOrders = async (params = {}) => {
-    const res = await get('/repairs', params)
+    const res = await get('/repairs', _listQuery(params))
     allOrders.value = res?.records || res || []
     return allOrders.value
   }
@@ -43,6 +52,11 @@ export const useRepairStore = defineStore('repair', () => {
 
   // ── 工程师接单 ──
   const acceptOrder = async (repairId, scheduleData) => {
+    return await patch(`/repairs/${repairId}/assign`, scheduleData)
+  }
+
+  // ── 管理员指派工单（业务工单 → 指派到排期）──
+  const assignOrder = async (repairId, scheduleData) => {
     return await patch(`/repairs/${repairId}/assign`, scheduleData)
   }
 
@@ -104,6 +118,7 @@ export const useRepairStore = defineStore('repair', () => {
     fetchAllOrders,
     fetchDetail,
     acceptOrder,
+    assignOrder,
     addProgress,
     completeOrder,
     transferOrder,

@@ -14,7 +14,10 @@
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@vueup/vue-quill": "^1.5.5",
     "axios": "^1.18.1",
+    "dayjs": "^1.11.21",
+    "echarts": "^6.1.0",
     "element-plus": "^2.13.6",
     "pinia": "^3.0.4",
     "sass": "^1.99.0",

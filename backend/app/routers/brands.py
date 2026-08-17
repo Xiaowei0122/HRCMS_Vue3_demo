@@ -3,10 +3,10 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types
 from app.core.response import success, error, paginate
 
-router = APIRouter(prefix="/brands", tags=["品牌管理"])
+router = APIRouter(prefix="/brands", tags=["品牌管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
 
 
 @router.get("")

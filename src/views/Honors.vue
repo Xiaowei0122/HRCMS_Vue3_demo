@@ -5,9 +5,9 @@
         <div class="header-main">
           <div class="left">
             <el-radio-group v-model="currentTab" size="default">
-              <el-radio-button label="all">全部</el-radio-button>
-              <el-radio-button label="cert">资质证书</el-radio-button>
-              <el-radio-button label="photo">公司风采</el-radio-button>
+              <el-radio-button value="all">全部</el-radio-button>
+              <el-radio-button value="cert">资质证书</el-radio-button>
+              <el-radio-button value="photo">公司风采</el-radio-button>
             </el-radio-group>
           </div>
           <el-button type="primary" icon="Plus" @click="openUpload">上传新荣誉/照片</el-button>
@@ -50,7 +50,7 @@
     </el-card>
 
     <!-- 上传/编辑弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑信息' : '添加新荣誉'" width="450px">
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑信息' : '添加新荣誉'" width="450px" append-to-body>
       <el-form :model="form" label-position="top">
         <el-form-item label="名称/标题">
           <el-input v-model="form.title" placeholder="如：理光核心代理商证书" />
@@ -63,12 +63,12 @@
         </el-form-item>
         <el-form-item label="选择图片">
           <el-upload
-            action="#"
-            list-type="picture-card"
-            :auto-upload="false"
-            :limit="1"
+            class="honor-uploader"
+            :show-file-list="false"
+            :http-request="handleImgUpload"
           >
-            <el-icon><Plus /></el-icon>
+            <img v-if="form.url" :src="form.url" class="honor-preview" />
+            <el-icon v-else class="honor-uploader-icon"><Plus /></el-icon>
           </el-upload>
         </el-form-item>
       </el-form>
@@ -84,6 +84,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getHonorList, createHonor, updateHonor, deleteHonor } from '@/api/modules/honors'
+import { uploadFile } from '@/api/modules/upload'
 
 const currentTab = ref('all')
 const dialogVisible = ref(false)
@@ -133,6 +134,16 @@ const editHonor = (item) => {
   dialogVisible.value = true
 }
 
+const handleImgUpload = async ({ file, onSuccess, onError }) => {
+  try {
+    const res = await uploadFile(file, 'honors')
+    form.value.url = res.url
+    onSuccess && onSuccess(res)
+  } catch (e) {
+    onError && onError(e)
+  }
+}
+
 const handleSave = async () => {
   try {
     if (isEdit.value) {
@@ -165,7 +176,7 @@ onMounted(() => {
 .header-main { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 
 .honor-card {
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   transition: all 0.3s;
 }
@@ -224,4 +235,8 @@ onMounted(() => {
   font-size: 12px;
   color: #999;
 }
+
+.honor-uploader { width: 160px; }
+.honor-preview { width: 160px; height: 120px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color); display: block; }
+.honor-uploader-icon { font-size: 28px; color: #8c939d; width: 160px; height: 120px; text-align: center; line-height: 120px; border: 1px dashed #d9d9d9; border-radius: 4px; }
 </style>

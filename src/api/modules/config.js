@@ -1,13 +1,40 @@
 import request from '@/utils/request'
 
-/** GET /config => 完整全局配置 */
+/** GET /config => 完整全局配置（公开平铺结构，供官网/小程序） */
 export function getGlobalConfig() {
   return request.get('/config')
+}
+
+/** GET /config/full => 管理端结构化配置 */
+export function getConfigFull() {
+  return request.get('/config/full')
 }
 
 /** PUT /config/basic */
 export function saveBasicConfig(data) {
   return request.put('/config/basic', data)
+}
+
+// ==================== 服务板块 / 关于（官网内容） ====================
+
+/** GET /config/services */
+export function getServices() {
+  return request.get('/config/services')
+}
+
+/** PUT /config/services  { services: [...] } */
+export function saveServices(data) {
+  return request.put('/config/services', data)
+}
+
+/** GET /config/about */
+export function getAbout() {
+  return request.get('/config/about')
+}
+
+/** PUT /config/about  { about: {...} } */
+export function saveAbout(data) {
+  return request.put('/config/about', data)
 }
 
 // ==================== Banner ====================

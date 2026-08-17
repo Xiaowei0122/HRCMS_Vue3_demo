@@ -4,12 +4,12 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user
+from app.core.deps import get_db, get_current_user, require_user_types
 from app.core.response import success, error, paginate
 from app.core.security import hash_password
 from app.models.user import UserCreate, UserUpdate, UserQuery
 
-router = APIRouter(prefix="/users", tags=["用户管理"])
+router = APIRouter(prefix="/users", tags=["用户管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
 
 
 @router.get("")

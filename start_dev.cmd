@@ -11,7 +11,7 @@ echo.
 echo    CMS Backend  : http://localhost:8080/docs
 echo    CMS Frontend : http://localhost:5173
 echo    MiniProgram  : http://localhost:5174
-echo    MongoDB      : 192.168.1.111:32769
+echo    MongoDB      : 127.0.0.1:27017
 echo    Database     : hrcms_test
 echo.
 echo ========================================================
@@ -26,7 +26,7 @@ powershell -Command "try{$c=New-Object Net.Sockets.TcpClient;$c.Connect('192.168
 if %errorlevel% equ 0 (
     echo        [OK] MongoDB is reachable
 ) else (
-    echo        [WARN] MongoDB not reachable at 192.168.1.111:32769
+    echo        [WARN] MongoDB not reachable at 127.0.0.1:27017
     echo        Please ensure MongoDB is running before proceeding.
 )
 echo.

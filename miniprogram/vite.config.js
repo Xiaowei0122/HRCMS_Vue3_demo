@@ -40,7 +40,14 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    proxy: {
+      // 生产环境 VITE_API_BASE_URL=/api 时的同源代理
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true
+      }
+    }
   },
   css: {
     preprocessorOptions: {

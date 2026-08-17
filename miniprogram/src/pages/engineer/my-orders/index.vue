@@ -4,7 +4,7 @@
 -->
 <template>
   <view class="my-orders-page">
-    <!-- 顶部筛选 -->
+    <!-- 状态筛选 -->
     <view class="filter-bar">
       <view
         v-for="tab in statusTabs"
@@ -36,8 +36,8 @@
             <view class="order-no">
               <text class="no-text">{{ item.orderNo }}</text>
             </view>
-            <view class="order-status" :class="'status-' + (item.status || 'processing')">
-              {{ statusMap[item.status] || '处理中' }}
+            <view class="order-status" :class="'status-' + statusKey(item.status)">
+              {{ item.status || '处理中' }}
             </view>
           </view>
 
@@ -45,22 +45,31 @@
             <text class="card-company">{{ item.company }}</text>
             <text class="card-desc text-ellipsis-2">{{ item.description }}</text>
             <view class="card-meta">
-              <text class="meta-item">📅 {{ formatDate(item.createTime) }}</text>
-              <text class="meta-item">👤 {{ item.contactName }}</text>
-              <text class="meta-item" v-if="item.contactPhone">📞 {{ item.contactPhone }}</text>
+              <view class="meta-item">
+                <SvgIcon name="calendar" :size="22" />
+                <text>{{ formatDate(item.createTime) }}</text>
+              </view>
+              <view class="meta-item">
+                <SvgIcon name="user" :size="22" />
+                <text>{{ item.contact }}</text>
+              </view>
+              <view class="meta-item" v-if="item.phone">
+                <SvgIcon name="phone" :size="22" />
+                <text>{{ item.phone }}</text>
+              </view>
             </view>
           </view>
 
           <!-- 进度简述 -->
           <view class="card-progress" v-if="item.progress && item.progress.length">
             <text class="progress-hint">
-              最新进度：{{ item.progress[item.progress.length - 1]?.content || '处理中' }}
+              最新进度：{{ item.progress[item.progress.length - 1]?.node || '处理中' }}
             </text>
           </view>
 
           <view class="card-foot">
-            <view class="urgency-label" :class="'urgency-' + (item.urgency || 'normal')">
-              {{ urgencyMap[item.urgency] || '一般' }}
+            <view class="urgency-label" :class="'urgency-' + priorityKey(item.priority)">
+              {{ item.priority || '普通' }}
             </view>
             <text class="card-action">查看详情 →</text>
           </view>
@@ -69,9 +78,9 @@
 
       <EmptyState
         v-else
-        icon="📋"
+        icon="clipboard"
         text="暂无已接工单"
-        sub-text="去"所有工单"接单吧"
+        sub-text="去「所有工单」接单吧"
       />
 
       <view class="list-footer" v-if="list.length > 0">
@@ -89,21 +98,20 @@ import { ref, onMounted } from 'vue'
 import { useRepairStore } from '@/stores/repair'
 import CustomTabBar from '@/components/CustomTabBar.vue'
 import EmptyState from '@/components/EmptyState.vue'
+import SvgIcon from '@/components/SvgIcon.vue'
+import { STATUS, statusKey, priorityKey } from '@/utils/repair-status'
 
 const repairStore = useRepairStore()
 const list = ref([])
 const refreshing = ref(false)
-const currentStatus = ref('processing')
+const currentStatus = ref(STATUS.PROCESSING)
 const page = ref(1)
 const noMore = ref(false)
 
 const statusTabs = [
-  { label: '处理中', value: 'processing' },
-  { label: '已完成', value: 'done' }
+  { label: '处理中', value: STATUS.PROCESSING },
+  { label: '已完成', value: STATUS.DONE }
 ]
-
-const statusMap = { processing: '处理中', done: '已完成' }
-const urgencyMap = { urgent: '紧急', normal: '一般', low: '不急' }
 
 const switchTab = (val) => {
   currentStatus.value = val
@@ -164,11 +172,10 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .my-orders-page {
-  min-height: 100vh;
-  background: #F7F7F7;
+  height: 100vh;
+  background: #F8FAFC;
   display: flex;
   flex-direction: column;
-  padding-bottom: 140rpx;
 }
 
 .filter-bar {
@@ -186,13 +193,13 @@ onMounted(() => {
   text-align: center;
   padding: 12rpx 0;
   font-size: 26rpx;
-  color: #666;
-  background: #F7F7F7;
+  color: #64748B;
+  background: #F1F5F9;
   border-radius: 8rpx;
-  transition: all 0.25s;
+  transition: all 0.25s ease;
 
   &.active {
-    background: #D32223;
+    background: #0F172A;
     color: #FFFFFF;
     font-weight: 600;
   }
@@ -221,7 +228,7 @@ onMounted(() => {
 
 .no-text {
   font-size: 24rpx;
-  color: #333;
+  color: #334155;
   font-family: monospace;
   font-weight: 500;
 }
@@ -232,49 +239,52 @@ onMounted(() => {
   border-radius: 20rpx;
   font-weight: 500;
 
-  &.status-processing { background: #E3F2FD; color: #1565C0; }
-  &.status-done       { background: #E8F5E9; color: #2E7D32; }
+  &.status-processing { background: #E0F2FE; color: #0369A1; }
+  &.status-done       { background: #DCFCE7; color: #16A34A; }
 }
 
 .card-company {
-  font-size: 30rpx; font-weight: 700; color: #222;
+  font-size: 30rpx; font-weight: 700; color: #020617;
   display: block; margin-bottom: 8rpx;
 }
 
 .card-desc {
-  font-size: 26rpx; color: #666; line-height: 1.5; margin-bottom: 12rpx;
+  font-size: 26rpx; color: #334155; line-height: 1.5; margin-bottom: 12rpx;
 }
 
 .card-meta {
   display: flex; flex-wrap: wrap; gap: 8rpx 24rpx;
 }
 
-.meta-item { font-size: 22rpx; color: #999; }
+.meta-item {
+  display: flex; align-items: center; gap: 4rpx;
+  font-size: 22rpx; color: #64748B;
+}
 
 .card-progress {
   margin-top: 12rpx; padding: 12rpx 16rpx;
-  background: #F0F8FF; border-radius: 8rpx;
-  border-left: 4rpx solid #2196F3;
+  background: #F0F9FF; border-radius: 8rpx;
+  border-left: 4rpx solid #0F172A;
 }
 
-.progress-hint { font-size: 24rpx; color: #1565C0; }
+.progress-hint { font-size: 24rpx; color: #0369A1; }
 
 .card-foot {
   display: flex; justify-content: space-between; align-items: center;
-  margin-top: 12rpx; padding-top: 12rpx; border-top: 1px solid #F0F0F0;
+  margin-top: 12rpx; padding-top: 12rpx; border-top: 1px solid #E2E8F0;
 }
 
 .urgency-label {
-  font-size: 22rpx; padding: 4rpx 14rpx; border-radius: 4rpx;
+  font-size: 22rpx; padding: 4rpx 14rpx; border-radius: 6rpx;
 
-  &.urgency-urgent { background: #FFEBEE; color: #C62828; }
-  &.urgency-normal { background: #FFF8E1; color: #F57F17; }
-  &.urgency-low    { background: #E8F5E9; color: #2E7D32; }
+  &.urgency-urgent { background: #FEE2E2; color: #DC2626; }
+  &.urgency-normal { background: #FEF3C7; color: #D97706; }
+  &.urgency-low    { background: #DCFCE7; color: #16A34A; }
 }
 
-.card-action { font-size: 24rpx; color: #D32223; font-weight: 500; }
+.card-action { font-size: 24rpx; color: #0369A1; font-weight: 500; }
 
 .list-footer { text-align: center; padding: 32rpx; }
 
-.footer-text { font-size: 24rpx; color: #ccc; }
+.footer-text { font-size: 24rpx; color: #94A3B8; }
 </style>

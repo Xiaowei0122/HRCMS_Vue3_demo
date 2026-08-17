@@ -16,15 +16,16 @@
 
       <template v-if="detail && !loading">
         <!-- 状态横幅 -->
-        <view class="status-banner" :class="'banner-' + (detail.status || 'pending')">
-          <text class="banner-status">{{ statusMap[detail.status] || '待处理' }}</text>
+        <view class="status-banner" :class="'banner-' + statusKey(detail.status)">
+          <text class="banner-status">{{ detail.status || '待接单' }}</text>
           <text class="banner-no">工单号：{{ detail.orderNo }}</text>
         </view>
 
         <!-- 工单信息 -->
         <view class="info-card">
           <view class="card-title-row">
-            <text class="card-title">📋 工单信息</text>
+            <SvgIcon name="clipboard" :size="32" />
+            <text class="card-title">工单信息</text>
           </view>
           <view class="info-grid">
             <view class="info-item">
@@ -41,11 +42,11 @@
             </view>
             <view class="info-item">
               <text class="item-label">联系人</text>
-              <text class="item-value">{{ detail.contactName }}</text>
+              <text class="item-value">{{ detail.contact }}</text>
             </view>
             <view class="info-item">
               <text class="item-label">联系电话</text>
-              <text class="item-value mono">{{ detail.contactPhone }}</text>
+              <text class="item-value mono">{{ detail.phone }}</text>
             </view>
             <view class="info-item">
               <text class="item-label">设备类型</text>
@@ -53,8 +54,8 @@
             </view>
             <view class="info-item">
               <text class="item-label">紧急程度</text>
-              <text class="urgency-tag" :class="'urgency-' + (detail.urgency || 'normal')">
-                {{ urgencyMap[detail.urgency] || '一般' }}
+              <text class="urgency-tag" :class="'urgency-' + priorityKey(detail.priority)">
+                {{ detail.priority || '普通' }}
               </text>
             </view>
             <view class="info-item full-width">
@@ -68,72 +69,78 @@
           </view>
         </view>
 
-        <!-- 服务信息 -->
-        <view class="info-card" v-if="detail.serviceType || detail.engineerName">
+        <!-- 服务信息（工程师接单后显示） -->
+        <view class="info-card" v-if="detail.engineer">
           <view class="card-title-row">
-            <text class="card-title">🔧 服务信息</text>
+            <SvgIcon name="wrench" :size="32" />
+            <text class="card-title">服务信息</text>
           </view>
           <view class="info-grid">
-            <view class="info-item" v-if="detail.serviceType">
-              <text class="item-label">服务类型</text>
-              <text class="item-value">{{ detail.serviceType }}</text>
-            </view>
-            <view class="info-item" v-if="detail.serviceProduct">
-              <text class="item-label">服务产品</text>
-              <text class="item-value">{{ detail.serviceProduct }}</text>
-            </view>
-            <view class="info-item" v-if="detail.engineerName">
+            <view class="info-item">
               <text class="item-label">服务工程师</text>
-              <text class="item-value">👨‍🔧 {{ detail.engineerName }}</text>
+              <view class="item-value engineer-value">
+                <SvgIcon name="hardHat" :size="28" />
+                <text>{{ detail.engineer }}</text>
+              </view>
             </view>
-          </view>
-        </view>
-
-        <!-- 费用明细 -->
-        <view class="info-card" v-if="detail.serviceFee !== undefined">
-          <view class="card-title-row">
-            <text class="card-title">💰 费用明细</text>
-          </view>
-          <view class="fee-row">
-            <text class="fee-label">服务费用</text>
-            <text class="fee-value">¥{{ Number(detail.serviceFee).toFixed(2) }}</text>
           </view>
         </view>
 
         <!-- 处理进度 时间轴 -->
         <view class="info-card">
           <view class="card-title-row">
-            <text class="card-title">📌 处理进度</text>
+            <SvgIcon name="clock" :size="32" />
+            <text class="card-title">处理进度</text>
           </view>
           <TimeLine :items="detail.progress || defaultProgress" />
         </view>
 
         <!-- 工程师操作按钮 -->
-        <view class="action-bar" v-if="authStore.isEngineer && detail.status !== 'done'">
+        <view class="action-bar" v-if="authStore.isEngineer && detail.status !== STATUS.DONE">
           <!-- 待接单：接单按钮 -->
           <button
-            v-if="detail.status === 'pending'"
+            v-if="detail.status === STATUS.PENDING"
             class="btn-accept"
             @click="handleAccept"
           >
             接 单
           </button>
 
-          <!-- 处理中：完成 + 转单 -->
-          <view v-if="detail.status === 'processing'" class="action-row">
-            <button class="btn-transfer" @click="showTransferPopup = true">
-              转单申请
+          <!-- 处理中：添加进度 + 完成 + 转单 -->
+          <view v-if="detail.status === STATUS.PROCESSING" class="action-col">
+            <button class="btn-add-progress" @click="showProgressForm = !showProgressForm">
+              {{ showProgressForm ? '收起' : '添加进度' }}
             </button>
-            <button class="btn-complete" @click="handleComplete">
-              标记完成
-            </button>
+
+            <view v-if="showProgressForm" class="progress-form">
+              <textarea
+                class="progress-input"
+                v-model="progressInput"
+                placeholder="填写当前处理进度，如：已上门检测，等待配件到货"
+                maxlength="200"
+                :auto-height="true"
+              />
+              <button class="btn-progress-submit" :disabled="submittingProgress" @click="submitProgress">
+                {{ submittingProgress ? '提交中...' : '提交进度' }}
+              </button>
+            </view>
+
+            <view class="action-row">
+              <button class="btn-transfer" @click="showTransferPopup = true">
+                转单申请
+              </button>
+              <button class="btn-complete" @click="handleComplete">
+                标记完成
+              </button>
+            </view>
           </view>
         </view>
 
         <!-- 现场图片 -->
         <view class="info-card" v-if="detail.images && detail.images.length">
           <view class="card-title-row">
-            <text class="card-title">🖼️ 现场照片</text>
+            <SvgIcon name="image" :size="32" />
+            <text class="card-title">现场照片</text>
           </view>
           <view class="image-grid">
             <img
@@ -178,6 +185,41 @@
         </view>
       </view>
     </view>
+
+    <!-- 接单排期弹窗 -->
+    <view class="popup-overlay" v-if="showAcceptPopup" @click="showAcceptPopup = false">
+      <view class="popup-card" @click.stop>
+        <text class="popup-title">接单排期</text>
+        <text class="popup-desc">选择排期时间后确认接单</text>
+
+        <view class="accept-date-row">
+          <text class="accept-label">排期日期</text>
+          <picker mode="date" :value="acceptDate" @change="onAcceptDateChange">
+            <view class="accept-date-value">{{ acceptDate }}</view>
+          </picker>
+        </view>
+
+        <view class="slot-grid">
+          <view
+            v-for="s in TIME_SLOTS"
+            :key="s.key"
+            class="slot-chip"
+            :class="{ selected: acceptSlot === s.key }"
+            @click="acceptSlot = s.key"
+          >
+            <text class="slot-chip-label">{{ s.label }}</text>
+            <text class="slot-chip-range">{{ s.range }}</text>
+          </view>
+        </view>
+
+        <view class="popup-actions">
+          <button class="btn-cancel" @click="showAcceptPopup = false">取消</button>
+          <button class="btn-confirm" @click="confirmAccept" :disabled="accepting">
+            {{ accepting ? '接单中...' : '确认接单' }}
+          </button>
+        </view>
+      </view>
+    </view>
   </view>
 </template>
 
@@ -186,7 +228,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useRepairStore } from '@/stores/repair'
+import SvgIcon from '@/components/SvgIcon.vue'
 import TimeLine from '@/components/TimeLine.vue'
+import { STATUS, statusKey, priorityKey, TIME_SLOTS } from '@/utils/repair-status'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -198,15 +242,30 @@ const showTransferPopup = ref(false)
 const selectedEngineer = ref('')
 const engineers = ref([])
 
-const statusMap = { pending: '待处理', processing: '处理中', done: '已完成' }
-const urgencyMap = { urgent: '紧急', normal: '一般', low: '不急' }
+// 接单排期（选择时间）
+const showAcceptPopup = ref(false)
+const acceptDate = ref('')
+const acceptSlot = ref('AM1')
+const accepting = ref(false)
+
+// 添加进度
+const showProgressForm = ref(false)
+const progressInput = ref('')
+const submittingProgress = ref(false)
+
+// 今天日期（接单默认排期）
+const todayStr = () => {
+  const d = new Date()
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
 
 // 默认空进度
 const defaultProgress = computed(() => {
   if (!detail.value) return []
   return [{
     time: detail.value.createTime,
-    content: '工单已提交',
+    node: '工单已提交',
     status: 'done'
   }]
 })
@@ -225,20 +284,36 @@ const previewDetailImage = (idx) => {
   })
 }
 
-// 工程师接单
+// 工程师接单：先选择排期时间，再确认
 const handleAccept = () => {
-  uni.showModal({
-    title: '确认接单',
-    content: '接单后工单将进入"我的工单"列表',
-    success: async (res) => {
-      if (!res.confirm) return
-      try {
-        await repairStore.acceptOrder(detail.value._id || detail.value.id)
-        uni.showToast({ title: '接单成功', icon: 'success' })
-        setTimeout(() => loadDetail(), 500)
-      } catch { /* handled */ }
-    }
-  })
+  acceptDate.value = todayStr()
+  acceptSlot.value = 'AM1'
+  showAcceptPopup.value = true
+}
+
+const confirmAccept = async () => {
+  if (!acceptSlot.value) {
+    uni.showToast({ title: '请选择时段', icon: 'none' })
+    return
+  }
+  accepting.value = true
+  try {
+    await repairStore.acceptOrder(detail.value._id || detail.value.id, {
+      date: acceptDate.value,
+      timeSlot: acceptSlot.value
+    })
+    uni.showToast({ title: '接单成功', icon: 'success' })
+    showAcceptPopup.value = false
+    setTimeout(() => loadDetail(), 500)
+  } catch {
+    // handled
+  } finally {
+    accepting.value = false
+  }
+}
+
+const onAcceptDateChange = (e) => {
+  acceptDate.value = e.detail.value
 }
 
 // 完成工单
@@ -267,6 +342,25 @@ const handleTransfer = async () => {
     uni.showToast({ title: '转单申请已提交', icon: 'success' })
     showTransferPopup.value = false
   } catch { /* handled */ }
+}
+
+// 添加进度
+const submitProgress = async () => {
+  const node = progressInput.value.trim()
+  if (!node) {
+    uni.showToast({ title: '请输入进度内容', icon: 'none' })
+    return
+  }
+  submittingProgress.value = true
+  try {
+    await repairStore.addProgress(detail.value._id || detail.value.id, { node, status: 'doing' })
+    uni.showToast({ title: '进度已添加', icon: 'success' })
+    progressInput.value = ''
+    showProgressForm.value = false
+    setTimeout(() => loadDetail(), 500)
+  } catch { /* handled */ } finally {
+    submittingProgress.value = false
+  }
 }
 
 const loadDetail = async () => {
@@ -301,7 +395,7 @@ onMounted(() => {
 <style lang="scss" scoped>
 .detail-page {
   min-height: 100vh;
-  background: #F7F7F7;
+  background: #F8FAFC;
 }
 
 .page-scroll {
@@ -316,7 +410,7 @@ onMounted(() => {
 
 .loading-text {
   font-size: 28rpx;
-  color: #999;
+  color: #64748B;
 }
 
 /* 状态横幅 */
@@ -327,9 +421,9 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
 
-  &.banner-pending    { background: linear-gradient(135deg, #FF9800, #F57C00); }
-  &.banner-processing { background: linear-gradient(135deg, #2196F3, #1976D2); }
-  &.banner-done       { background: linear-gradient(135deg, #4CAF50, #388E3C); }
+  &.banner-pending    { background: linear-gradient(135deg, #F59E0B, #D97706); }
+  &.banner-processing { background: linear-gradient(135deg, #0369A1, #0284C7); }
+  &.banner-done       { background: linear-gradient(135deg, #16A34A, #15803D); }
 }
 
 .banner-status {
@@ -348,21 +442,24 @@ onMounted(() => {
 .info-card {
   margin: 16rpx 24rpx;
   background: #FFFFFF;
-  border-radius: 16rpx;
+  border-radius: 14rpx;
   padding: 24rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2rpx 12rpx rgba(15, 23, 42, 0.06);
 }
 
 .card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
   margin-bottom: 16rpx;
   padding-bottom: 12rpx;
-  border-bottom: 1px solid #F0F0F0;
+  border-bottom: 1px solid #E2E8F0;
 }
 
 .card-title {
   font-size: 28rpx;
   font-weight: 700;
-  color: #222;
+  color: #020617;
 }
 
 .info-grid {
@@ -379,17 +476,23 @@ onMounted(() => {
 
 .item-label {
   font-size: 24rpx;
-  color: #999;
+  color: #64748B;
   display: block;
   margin-bottom: 4rpx;
 }
 
 .item-value {
   font-size: 26rpx;
-  color: #333;
+  color: #334155;
 
   &.mono { font-family: monospace; }
   &.desc-text { line-height: 1.6; font-size: 28rpx; }
+}
+
+.engineer-value {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
 }
 
 .urgency-tag {
@@ -398,9 +501,9 @@ onMounted(() => {
   border-radius: 4rpx;
   display: inline-block;
 
-  &.urgency-urgent { background: #FFEBEE; color: #C62828; }
-  &.urgency-normal { background: #FFF8E1; color: #F57F17; }
-  &.urgency-low    { background: #E8F5E9; color: #2E7D32; }
+  &.urgency-urgent { background: #FEE2E2; color: #DC2626; }
+  &.urgency-normal { background: #FEF3C7; color: #D97706; }
+  &.urgency-low    { background: #DCFCE7; color: #16A34A; }
 }
 
 /* 费用 */
@@ -413,13 +516,13 @@ onMounted(() => {
 
 .fee-label {
   font-size: 26rpx;
-  color: #999;
+  color: #64748B;
 }
 
 .fee-value {
   font-size: 36rpx;
   font-weight: 800;
-  color: #D32223;
+  color: #0F172A;
 }
 
 /* 图片 */
@@ -440,11 +543,69 @@ onMounted(() => {
   margin: 16rpx 24rpx;
 }
 
+.action-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.btn-add-progress {
+  width: 100%;
+  height: 80rpx;
+  background: #FFFFFF;
+  color: #0369A1;
+  font-size: 28rpx;
+  font-weight: 600;
+  border: 1px solid #0369A1;
+  border-radius: 50rpx;
+  text-align: center;
+  line-height: 80rpx;
+
+  &:active { opacity: 0.85; }
+}
+
+.progress-form {
+  background: #F8FAFC;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.progress-input {
+  width: 100%;
+  min-height: 120rpx;
+  background: #FFFFFF;
+  border-radius: 10rpx;
+  padding: 16rpx;
+  font-size: 26rpx;
+  color: #334155;
+  box-sizing: border-box;
+  border: 1px solid #E2E8F0;
+}
+
+.btn-progress-submit {
+  width: 100%;
+  height: 76rpx;
+  background: #0F172A;
+  color: #FFFFFF;
+  font-size: 26rpx;
+  font-weight: 600;
+  border: none;
+  border-radius: 50rpx;
+  text-align: center;
+  line-height: 76rpx;
+
+  &:active { opacity: 0.9; }
+  &[disabled] { background: #94A3B8; }
+}
+
 .btn-accept {
   width: 100%;
   height: 88rpx;
-  background: #2196F3;
-  color: #fff;
+  background: linear-gradient(135deg, #0369A1, #0284C7);
+  color: #FFFFFF;
   font-size: 30rpx;
   font-weight: 600;
   border: none;
@@ -473,12 +634,12 @@ onMounted(() => {
 
 .btn-transfer {
   background: #FFFFFF;
-  color: #FF9800;
-  border: 1px solid #FF9800;
+  color: #0369A1;
+  border: 1px solid #0369A1;
 }
 
 .btn-complete {
-  background: #4CAF50;
+  background: linear-gradient(135deg, #16A34A, #15803D);
   color: #FFFFFF;
 }
 
@@ -507,13 +668,13 @@ onMounted(() => {
 .popup-title {
   font-size: 32rpx;
   font-weight: 700;
-  color: #222;
+  color: #020617;
   text-align: center;
 }
 
 .popup-desc {
   font-size: 24rpx;
-  color: #999;
+  color: #64748B;
   text-align: center;
   margin: 8rpx 0 20rpx;
 }
@@ -526,18 +687,18 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 20rpx 16rpx;
-  border-radius: 12rpx;
+  border-radius: 10rpx;
   margin-bottom: 8rpx;
-  background: #F7F7F7;
+  background: #F1F5F9;
 
   &.selected {
-    background: #FFF0F0;
-    border: 1px solid #D32223;
+    background: #F0F9FF;
+    border: 1px solid #0369A1;
   }
 }
 
-.eng-name { font-size: 28rpx; color: #333; font-weight: 500; }
-.eng-phone { font-size: 24rpx; color: #999; }
+.eng-name { font-size: 28rpx; color: #334155; font-weight: 500; }
+.eng-phone { font-size: 24rpx; color: #64748B; }
 
 .popup-actions {
   display: flex;
@@ -555,9 +716,66 @@ onMounted(() => {
   border: none;
 }
 
-.btn-cancel { background: #F7F7F7; color: #666; }
-.btn-confirm { background: #D32223; color: #FFFFFF; }
-.btn-confirm[disabled] { background: #CCCCCC; }
+.btn-cancel { background: #F1F5F9; color: #334155; }
+.btn-confirm { background: #0F172A; color: #FFFFFF; }
+.btn-confirm[disabled] { background: #94A3B8; }
+
+/* 接单排期弹窗 */
+.accept-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 16rpx;
+  background: #F1F5F9;
+  border-radius: 10rpx;
+  margin-bottom: 16rpx;
+}
+
+.accept-label {
+  font-size: 26rpx;
+  color: #64748B;
+}
+
+.accept-date-value {
+  font-size: 28rpx;
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.slot-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.slot-chip {
+  width: calc((100% - 32rpx) / 3);
+  box-sizing: border-box;
+  padding: 16rpx 8rpx;
+  border-radius: 10rpx;
+  background: #F1F5F9;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+
+  &.selected {
+    background: #F0F9FF;
+    border-color: #0369A1;
+  }
+}
+
+.slot-chip-label {
+  font-size: 26rpx;
+  color: #334155;
+  font-weight: 600;
+}
+
+.slot-chip-range {
+  font-size: 20rpx;
+  color: #64748B;
+}
 
 .safe-bottom { height: 60rpx; }
 

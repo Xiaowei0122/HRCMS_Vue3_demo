@@ -15,7 +15,7 @@
         <el-table-column label="负责工程师" width="120">
           <template #default="{ row }">
             <el-tag v-if="row.engineer" effect="plain" type="info">{{ row.engineer }}</el-tag>
-            <span v-else style="color: #909399; font-size: 12px;">待指派</span>
+            <span v-else style="color: var(--text-muted); font-size: 12px;">待指派</span>
           </template>
         </el-table-column>
         <el-table-column label="当前状态" width="120">
@@ -48,7 +48,7 @@
     </el-card>
 
     <!-- 详情弹窗：侧重进度追踪 -->
-    <el-dialog v-model="detailsVisible" title="工单实时进度" width="500px" destroy-on-close>
+    <el-dialog v-model="detailsVisible" title="工单实时进度" width="500px" append-to-body destroy-on-close>
       <div v-if="activeOrder" class="progress-details">
         <!-- 顶部摘要 -->
         <div class="order-summary">
@@ -68,7 +68,7 @@
             :hollow="step.status === 'doing'"
           >
             <h4 style="margin: 0">{{ step.node }}</h4>
-            <p v-if="step.operator" style="font-size: 12px; color: #909399; margin-top: 5px">
+            <p v-if="step.operator" style="font-size: 12px; color: var(--text-muted); margin-top: 5px">
               操作人：{{ step.operator }}
             </p>
           </el-timeline-item>
@@ -152,9 +152,9 @@ onMounted(() => {
 
 <style scoped>
 .header-flex { display: flex; justify-content: space-between; align-items: center; }
-.card-title { font-weight: bold; color: #303133; }
-.latest-node { font-size: 13px; color: #606266; }
-.order-summary { background: #f8f9fb; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+.card-title { font-weight: bold; color: var(--text-primary); }
+.latest-node { font-size: 13px; color: var(--text-secondary); }
+.order-summary { background: var(--bg-muted); padding: 15px; border-radius: 4px; margin-bottom: 20px; }
 .summary-item { font-size: 14px; margin-bottom: 8px; }
 .progress-details { padding: 0 10px; }
 .waiting-area { padding: 20px 0; }
