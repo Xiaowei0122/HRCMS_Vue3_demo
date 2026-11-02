@@ -15,11 +15,7 @@
       <div class="toolbar-left">
         <el-select v-model="filterCategory" placeholder="资产分类" style="width: 140px" clearable @change="fetchAssets">
           <el-option label="全部类别" value="" />
-          <el-option label="车辆" value="车辆" />
-          <el-option label="设备" value="设备" />
-          <el-option label="办公家具" value="办公家具" />
-          <el-option label="IT设备" value="IT设备" />
-          <el-option label="其他" value="其他" />
+          <el-option v-for="c in assetCategories" :key="c" :label="c" :value="c" />
         </el-select>
         <el-select v-model="filterStatus" placeholder="使用状态" style="width: 140px; margin-left: 12px" clearable @change="fetchAssets">
           <el-option label="全部状态" value="" />
@@ -29,6 +25,14 @@
           <el-option label="已报废" value="已报废" />
         </el-select>
       </div>
+      <el-upload
+        :show-file-list="false"
+        :http-request="handleAssetImport"
+        accept=".xlsx,.xls"
+        style="display: inline-block"
+      >
+        <el-button :icon="Upload">批量导入</el-button>
+      </el-upload>
       <el-button type="primary" :icon="Plus" @click="openAssetDialog()">录入资产</el-button>
     </div>
 
@@ -88,11 +92,7 @@
           <el-col :span="10">
             <el-form-item label="资产分类" prop="category">
               <el-select v-model="assetForm.category" style="width: 100%">
-                <el-option label="车辆" value="车辆" />
-                <el-option label="设备" value="设备" />
-                <el-option label="办公家具" value="办公家具" />
-                <el-option label="IT设备" value="IT设备" />
-                <el-option label="其他" value="其他" />
+                <el-option v-for="c in assetCategories" :key="c" :label="c" :value="c" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -113,12 +113,7 @@
           <el-col :span="8">
             <el-form-item label="所属部门">
               <el-select v-model="assetForm.department" style="width: 100%">
-                <el-option label="总经办" value="总经办" />
-                <el-option label="财务部" value="财务部" />
-                <el-option label="销售部" value="销售部" />
-                <el-option label="售后部" value="售后部" />
-                <el-option label="行政部" value="行政部" />
-                <el-option label="技术部" value="技术部" />
+                <el-option v-for="d in departments" :key="d" :label="d" :value="d" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -271,11 +266,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, SetUp, Van, Cpu, OfficeBuilding, Monitor, More } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, SetUp, Van, Cpu, OfficeBuilding, Monitor, More, Upload } from '@element-plus/icons-vue'
 import {
   getAssetList, createAsset, updateAsset, deleteAsset, updateAssetStatus,
-  getMaintenanceRecords, addMaintenanceRecord
+  getMaintenanceRecords, addMaintenanceRecord, importAssets
 } from '@/api/modules/finance'
+import { getDictOptions } from '@/api/modules/dict'
+import { getDeptOptions } from '@/api/modules/depts'
 
 // ── 统计 ──
 const statCards = computed(() => {
@@ -310,6 +307,21 @@ const assetList = ref([])
 const loading = ref(false)
 const filterCategory = ref('')
 const filterStatus = ref('')
+
+// 业务下拉：优先读数据字典，字典为空时回退内置默认值
+const assetCategories = ref(['车辆', '设备', '办公家具', 'IT设备', '其他'])
+const departments = ref(['总经办', '财务部', '销售部', '售后部', '行政部', '技术部'])
+
+const loadDicts = async () => {
+  try {
+    const cats = await getDictOptions('资产分类')
+    if (Array.isArray(cats) && cats.length) assetCategories.value = cats.map(o => o.value)
+  } catch { /* 字典不可用时沿用内置默认 */ }
+  try {
+    const depts = await getDeptOptions()
+    if (Array.isArray(depts) && depts.length) departments.value = depts.map(o => o.value)
+  } catch { /* 部门接口不可用时沿用内置默认 */ }
+}
 
 const filteredAssets = computed(() => {
   let list = assetList.value
@@ -389,6 +401,16 @@ const handleDeleteAsset = async (row) => {
   } catch { /* ignore */ }
 }
 
+const handleAssetImport = async ({ file }) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  try {
+    const res = await importAssets(fd)
+    ElMessage.success(`导入完成：新增 ${res?.inserted ?? 0} 条，跳过 ${res?.skipped ?? 0} 条`)
+    fetchAssets()
+  } catch { /* ignore */ }
+}
+
 // ── 维修记录 ──
 const maintenanceDialogVisible = ref(false)
 const maintenanceTarget = ref(null)
@@ -438,6 +460,7 @@ const saveRecord = async () => {
 
 onMounted(() => {
   fetchAssets()
+  loadDicts()
 })
 </script>
 

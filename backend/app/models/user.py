@@ -15,14 +15,14 @@ class PasswordChangeIn(BaseModel):
 class UserCreate(BaseModel):
     username: str
     realName: str = ""
-    role: str = ""
+    roleCode: str = ""
     phone: str = ""
     password: str = "123456"
 
 
 class UserUpdate(BaseModel):
     realName: str | None = None
-    role: str | None = None
+    roleCode: str | None = None
     phone: str | None = None
 
 
@@ -30,3 +30,9 @@ class UserQuery(BaseModel):
     name: str | None = None
     page: int = 1
     size: int = 10
+
+
+class ProfileUpdateIn(BaseModel):
+    realName: str | None = None
+    phone: str | None = None
+    avatar: str | None = None

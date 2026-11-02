@@ -55,6 +55,7 @@
                     <el-tag size="small" effect="plain">{{ item.industry }}</el-tag>
                   </div>
                 </template>
+                <el-image v-if="item.img" :src="item.img" fit="cover" class="case-card-img" :preview-src-list="[item.img]" />
                 <div class="case-content">
                   <p><strong>交付设备：</strong>{{ item.device || '—' }}</p>
                   <p><strong>服务模式：</strong>{{ item.mode || '—' }}</p>
@@ -87,6 +88,12 @@
       <el-form :model="brandForm" label-position="top" ref="brandFormRef" :rules="brandRules">
         <el-form-item label="品牌名称" prop="name">
           <el-input v-model="brandForm.name" placeholder="例：惠普（HP）" />
+        </el-form-item>
+        <el-form-item label="Logo 上传">
+          <el-upload class="brand-uploader" :show-file-list="false" :http-request="handleBrandImgUpload" accept=".png,.jpg,.jpeg,.svg,.webp">
+            <img v-if="brandForm.logo" :src="brandForm.logo" class="brand-preview" />
+            <el-icon v-else class="brand-uploader-icon"><Plus /></el-icon>
+          </el-upload>
         </el-form-item>
         <el-form-item label="Logo 图片地址" prop="logo">
           <el-input v-model="brandForm.logo" placeholder="https://example.com/logo.png" />
@@ -150,6 +157,12 @@
         <el-form-item label="案例简介">
           <el-input v-model="caseForm.summary" type="textarea" :rows="4" placeholder="简要描述项目背景、解决方案与客户收益..." />
         </el-form-item>
+        <el-form-item label="案例图片">
+          <el-upload class="case-uploader" :show-file-list="false" :http-request="handleCaseImgUpload">
+            <img v-if="caseForm.img" :src="caseForm.img" class="case-preview" />
+            <el-icon v-else class="case-uploader-icon"><Plus /></el-icon>
+          </el-upload>
+        </el-form-item>
         <el-form-item label="成交日期">
           <el-date-picker v-model="caseForm.date" type="date" placeholder="选择日期" style="width: 100%" value-format="YYYY-MM-DD" />
         </el-form-item>
@@ -170,6 +183,7 @@ import {
   getBrandList, createBrand, updateBrand, deleteBrand,
   getCaseList, createCase, updateCase, deleteCase,
 } from '@/api/modules/cases'
+import { uploadFile } from '@/api/modules/upload'
 
 // ── Tab ──
 const activeTab = ref('brands')
@@ -214,6 +228,16 @@ const openBrandDialog = (row) => {
   brandDialogVisible.value = true
 }
 
+const handleBrandImgUpload = async ({ file, onSuccess, onError }) => {
+  try {
+    const res = await uploadFile(file, 'logos')
+    brandForm.logo = res.url
+    onSuccess && onSuccess(res)
+  } catch (e) {
+    onError && onError(e)
+  }
+}
+
 const saveBrand = async () => {
   const valid = await brandFormRef.value?.validate().catch(() => false)
   if (!valid) return
@@ -250,7 +274,7 @@ const caseSaving = ref(false)
 const caseDialogVisible = ref(false)
 const editingCase = ref(null)
 const searchCase = ref('')
-const caseForm = reactive({ client: '', industry: '', device: '', mode: '', summary: '', date: '' })
+const caseForm = reactive({ client: '', industry: '', device: '', mode: '', summary: '', date: '', img: '' })
 
 const filteredCases = computed(() => {
   if (!searchCase.value) return caseList.value
@@ -281,10 +305,21 @@ const openCaseDialog = (row) => {
     caseForm.mode = row.mode || ''
     caseForm.summary = row.summary || ''
     caseForm.date = row.date || ''
+    caseForm.img = row.img || ''
   } else {
-    Object.assign(caseForm, { client: '', industry: '', device: '', mode: '', summary: '', date: '' })
+    Object.assign(caseForm, { client: '', industry: '', device: '', mode: '', summary: '', date: '', img: '' })
   }
   caseDialogVisible.value = true
+}
+
+const handleCaseImgUpload = async ({ file, onSuccess, onError }) => {
+  try {
+    const res = await uploadFile(file, 'cases')
+    caseForm.img = res.url
+    onSuccess && onSuccess(res)
+  } catch (e) {
+    onError && onError(e)
+  }
 }
 
 const saveCase = async () => {
@@ -404,4 +439,13 @@ onMounted(() => {
   font-size: 12px;
   color: var(--text-muted);
 }
+
+.case-uploader { width: 100%; }
+.case-preview { width: 200px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color); display: block; }
+.case-uploader-icon { font-size: 28px; color: #8c939d; width: 200px; height: 120px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d9d9d9; border-radius: 6px; }
+.case-card-img { width: 100%; height: 160px; border-radius: 6px; margin-bottom: 10px; }
+
+.brand-uploader { width: 100%; }
+.brand-preview { width: 240px; height: 80px; object-fit: contain; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-muted); display: block; }
+.brand-uploader-icon { font-size: 28px; color: #8c939d; width: 240px; height: 80px; display: flex; align-items: center; justify-content: center; border: 1px dashed #d9d9d9; border-radius: 4px; }
 </style>

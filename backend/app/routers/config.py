@@ -3,12 +3,12 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user, get_optional_user, require_user_types
+from app.core.deps import get_db, get_current_user, get_optional_user, require_permission
 from app.core.response import success
 
 router = APIRouter(prefix="/config", tags=["全局配置"])
 
-_manage = Depends(require_user_types("admin", "internal"))
+_manage = Depends(require_permission("config"))
 
 
 @router.get("")

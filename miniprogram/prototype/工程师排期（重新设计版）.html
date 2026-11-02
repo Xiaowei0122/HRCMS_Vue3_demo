@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>工程师排期 - 重新设计版</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/design-canvas.js"></script>
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/ios-frame.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #E8ECF1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .canvas-wrap { width: 100%; max-width: 480px; }
+  .design-label {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .design-label h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 6px;
+  }
+  .design-label p {
+    font-size: 13px;
+    color: #86909C;
+  }
+
+  .page {
+    width: 100%;
+    height: 100%;
+    background: #F5F7FA;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 导航栏 */
+  .navbar {
+    height: 88px;
+    padding-top: 44px;
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .navbar-title { color: #fff; font-size: 17px; font-weight: 600; }
+  .navbar-back {
+    position: absolute;
+    left: 16px;
+    bottom: 12px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .navbar-back svg {
+    width: 22px;
+    height: 22px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .page-content {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 80px;
+  }
+
+  /* 工程师选择器 */
+  .engineer-selector {
+    margin: 14px 16px 0;
+    background: #fff;
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    cursor: pointer;
+    position: relative;
+  }
+  .engineer-selector-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .engineer-selector-avatar .online-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #00B42A;
+    border: 2px solid #fff;
+  }
+  .engineer-selector-info { flex: 1; min-width: 0; }
+  .engineer-selector-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1D2129;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .engineer-selector-tag {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #E8FFEA;
+    color: #00B42A;
+    font-weight: 500;
+  }
+  .engineer-selector-desc {
+    font-size: 12px;
+    color: #86909C;
+    margin-top: 2px;
+  }
+  .engineer-selector-arrow {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #F2F3F5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+  .engineer-selector-arrow svg {
+    width: 16px;
+    height: 16px;
+    stroke: #4E5969;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+
+  /* Tab切换 */
+  .page-tabs {
+    display: flex;
+    margin: 14px 16px 0;
+    background: #F2F3F5;
+    border-radius: 10px;
+    padding: 4px;
+    flex-shrink: 0;
+  }
+  .page-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 0;
+    font-size: 14px;
+    color: #4E5969;
+    font-weight: 500;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .page-tab.active {
+    background: #fff;
+    color: #165DFF;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  }
+  .page-tab svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* 日历卡片 */
+  .calendar-card {
+    margin: 14px 16px 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+  .calendar-nav-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #F2F3F5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .calendar-nav-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke: #4E5969;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+  .calendar-nav-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1D2129;
+  }
+  .calendar-today-btn {
+    font-size: 12px;
+    color: #165DFF;
+    padding: 5px 10px;
+    background: #E8F3FF;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: 44px repeat(7, 1fr);
+    gap: 3px;
+  }
+  .calendar-corner { }
+  .calendar-day-header {
+    text-align: center;
+    padding-bottom: 6px;
+  }
+  .calendar-day-week {
+    font-size: 11px;
+    color: #86909C;
+    font-weight: 500;
+  }
+  .calendar-day-date {
+    font-size: 13px;
+    color: #1D2129;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+  .calendar-day-header.today .calendar-day-week { color: #165DFF; }
+  .calendar-day-header.today .calendar-day-date {
+    color: #fff;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+  }
+  .calendar-day-header.selected {
+    background: #E8F3FF;
+    border-radius: 8px 8px 0 0;
+    padding-top: 4px;
+  }
+  .calendar-day-header.selected .calendar-day-week { color: #165DFF; font-weight: 700; }
+
+  .calendar-time-label {
+    font-size: 9px;
+    color: #86909C;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+    font-weight: 500;
+  }
+  .calendar-time-label .period {
+    font-size: 10px;
+    color: #4E5969;
+    font-weight: 600;
+    margin-bottom: 1px;
+  }
+
+  .calendar-cell {
+    height: 38px;
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    position: relative;
+  }
+  .calendar-cell.free {
+    background: #F0FAF1;
+    border: 1px solid #D4EDDA;
+  }
+  .calendar-cell.free .status-text {
+    font-size: 10px;
+    color: #00B42A;
+    font-weight: 600;
+  }
+  .calendar-cell.busy {
+    background: #FFF1F0;
+    border: 1px solid #FFCCC7;
+  }
+  .calendar-cell.busy .customer-name {
+    font-size: 9px;
+    color: #F53F3F;
+    font-weight: 600;
+    line-height: 1.1;
+    text-align: center;
+    padding: 0 2px;
+  }
+  .calendar-cell.busy .busy-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #F53F3F;
+  }
+  .calendar-cell.selected-col {
+    box-shadow: 0 0 0 2px #165DFF;
+  }
+  .calendar-cell.partial {
+    background: linear-gradient(135deg, #FFF1F0 50%, #F0FAF1 50%);
+    border: 1px solid #FFCCC7;
+  }
+
+  /* 图例 */
+  .calendar-legend {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #F2F3F5;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: #86909C;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+  .legend-dot.free { background: #F0FAF1; border: 1px solid #D4EDDA; }
+  .legend-dot.busy { background: #FFF1F0; border: 1px solid #FFCCC7; }
+
+  /* 当日排期列表 */
+  .day-schedule-section {
+    margin: 16px 16px 0;
+  }
+  .day-schedule-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .day-schedule-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1D2129;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-schedule-title::before {
+    content: '';
+    width: 4px;
+    height: 18px;
+    background: linear-gradient(180deg, #165DFF, #4080FF);
+    border-radius: 2px;
+  }
+  .day-schedule-date {
+    font-size: 13px;
+    color: #86909C;
+    font-weight: 400;
+  }
+  .day-schedule-count {
+    font-size: 12px;
+    color: #165DFF;
+    background: #E8F3FF;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .schedule-item {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    position: relative;
+  }
+  .schedule-time-block {
+    width: 70px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #E8F3FF, #D4E6FF);
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  .schedule-time-period {
+    font-size: 11px;
+    color: #165DFF;
+    font-weight: 700;
+  }
+  .schedule-time-range {
+    font-size: 10px;
+    color: #4E5969;
+    font-weight: 500;
+  }
+  .schedule-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .schedule-customer {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1D2129;
+    margin-bottom: 4px;
+  }
+  .schedule-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .schedule-meta-item {
+    font-size: 11px;
+    color: #86909C;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .schedule-meta-item svg {
+    width: 12px;
+    height: 12px;
+    stroke: #86909C;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+  .schedule-device-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #F2F3F5;
+    color: #4E5969;
+    font-weight: 500;
+  }
+  .schedule-delete {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #FFF1F0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .schedule-delete svg {
+    width: 14px;
+    height: 14px;
+    stroke: #F53F3F;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+
+  /* 空状态 */
+  .empty-state {
+    background: #fff;
+    border-radius: 14px;
+    padding: 40px 20px;
+    text-align: center;
+  }
+  .empty-state-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #F2F3F5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px;
+  }
+  .empty-state-icon svg {
+    width: 32px;
+    height: 32px;
+    stroke: #C9CDD4;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+  }
+  .empty-state-text {
+    font-size: 14px;
+    color: #86909C;
+    margin-bottom: 4px;
+  }
+  .empty-state-desc {
+    font-size: 12px;
+    color: #C9CDD4;
+  }
+
+  /* 底部添加按钮 */
+  .add-schedule-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 28px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 6px 16px rgba(22,93,255,0.35);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 10;
+  }
+  .add-schedule-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+
+  /* 工程师选择面板（底部弹出） */
+  .engineer-panel-mask {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+  }
+  .engineer-panel {
+    width: 100%;
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+    max-height: 70%;
+    overflow-y: auto;
+  }
+  .engineer-panel-handle {
+    width: 40px;
+    height: 4px;
+    background: #E5E6EB;
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .engineer-panel-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1D2129;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .engineer-panel-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+  .engineer-panel-item.selected {
+    background: #E8F3FF;
+    border: 1.5px solid #165DFF;
+  }
+  .engineer-panel-item:not(.selected):active {
+    background: #F7F8FA;
+  }
+  .engineer-panel-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .engineer-panel-avatar .online-dot {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+  }
+  .engineer-panel-avatar .online-dot.online { background: #00B42A; }
+  .engineer-panel-avatar .online-dot.offline { background: #C9CDD4; }
+  .engineer-panel-info { flex: 1; min-width: 0; }
+  .engineer-panel-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1D2129;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
+  }
+  .engineer-panel-id {
+    font-size: 11px;
+    color: #86909C;
+    background: #F2F3F5;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+  .engineer-panel-skills {
+    font-size: 12px;
+    color: #86909C;
+    margin-bottom: 4px;
+  }
+  .engineer-panel-load {
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .load-bar {
+    width: 60px;
+    height: 4px;
+    background: #F2F3F5;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .load-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+  .load-text { color: #86909C; }
+  .engineer-panel-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid #E5E6EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .engineer-panel-item.selected .engineer-panel-check {
+    background: #165DFF;
+    border-color: #165DFF;
+  }
+  .engineer-panel-check svg {
+    width: 14px;
+    height: 14px;
+    stroke: #fff;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+  }
+  .engineer-panel-item.selected .engineer-panel-check svg { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="canvas-wrap">
+  <div class="design-label">
+    <h1>工程师排期 · 重新设计版</h1>
+    <p>工程师选择面板 + 周视图占用日历 + 当日排期列表 · 单独版本</p>
+  </div>
+
+  <design-canvas>
+    <dc-section title="工程师排期" subtitle="iPhone 14 · 390×844">
+
+      <!-- ===== 排期主页 ===== -->
+      <dc-artboard id="schedule-main" label="排期主页" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">工程师排期</div>
+            </div>
+
+            <div class="page-content">
+              <!-- 工程师选择器 -->
+              <div class="engineer-selector">
+                <div class="engineer-selector-avatar">
+                  张
+                  <div class="online-dot"></div>
+                </div>
+                <div class="engineer-selector-info">
+                  <div class="engineer-selector-name">
+                    张工
+                    <span class="engineer-selector-tag">在线</span>
+                  </div>
+                  <div class="engineer-selector-desc">工号 HR001 · 本周已排 5 单</div>
+                </div>
+                <div class="engineer-selector-arrow">
+                  <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+
+              <!-- Tab切换 -->
+              <div class="page-tabs">
+                <div class="page-tab active">
+                  <svg viewBox="0 0 24 24" style="stroke:#165DFF;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  周排期
+                </div>
+                <div class="page-tab">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  工单列表
+                </div>
+              </div>
+
+              <!-- 日历卡片 -->
+              <div class="calendar-card">
+                <div class="calendar-nav">
+                  <div class="calendar-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+                  <div class="calendar-nav-title">2026/09/06 - 2026/09/12</div>
+                  <div class="calendar-today-btn">今天</div>
+                  <div class="calendar-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+
+                <div class="calendar-grid">
+                  <div class="calendar-corner"></div>
+                  <div class="calendar-day-header"><div class="calendar-day-week">周一</div><div class="calendar-day-date">06</div></div>
+                  <div class="calendar-day-header"><div class="calendar-day-week">周二</div><div class="calendar-day-date">07</div></div>
+                  <div class="calendar-day-header"><div class="calendar-day-week">周三</div><div class="calendar-day-date">08</div></div>
+                  <div class="calendar-day-header today selected"><div class="calendar-day-week">周四</div><div class="calendar-day-date">09</div></div>
+                  <div class="calendar-day-header"><div class="calendar-day-week">周五</div><div class="calendar-day-date">10</div></div>
+                  <div class="calendar-day-header"><div class="calendar-day-week">周六</div><div class="calendar-day-date">11</div></div>
+                  <div class="calendar-day-header"><div class="calendar-day-week">周日</div><div class="calendar-day-date">12</div></div>
+
+                  <!-- 上午早 -->
+                  <div class="calendar-time-label"><span class="period">上午早</span>08:30-10:00</div>
+                  <div class="calendar-cell busy selected-col"><span class="customer-name">曲江金控</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell busy selected-col"><span class="customer-name">省政府</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+
+                  <!-- 上午 -->
+                  <div class="calendar-time-label"><span class="period">上午</span>10:00-11:30</div>
+                  <div class="calendar-cell busy selected-col"><span class="customer-name">大数据</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free selected-col"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+
+                  <!-- 下午早 -->
+                  <div class="calendar-time-label"><span class="period">下午早</span>13:30-15:00</div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell busy"><span class="customer-name">大数据</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free selected-col"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+
+                  <!-- 下午 -->
+                  <div class="calendar-time-label"><span class="period">下午</span>15:00-16:30</div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell busy"><span class="customer-name">省委</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free selected-col"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+
+                  <!-- 下午晚 -->
+                  <div class="calendar-time-label"><span class="period">下午晚</span>16:30-18:00</div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free selected-col"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                  <div class="calendar-cell free"><span class="status-text">空闲</span></div>
+                </div>
+
+                <!-- 图例 -->
+                <div class="calendar-legend">
+                  <div class="legend-item"><div class="legend-dot free"></div>空闲可约</div>
+                  <div class="legend-item"><div class="legend-dot busy"></div>已占用</div>
+                </div>
+              </div>
+
+              <!-- 当日排期列表 -->
+              <div class="day-schedule-section">
+                <div class="day-schedule-header">
+                  <div class="day-schedule-title">
+                    9月9日 周四排期
+                    <span class="day-schedule-count">2 单</span>
+                  </div>
+                </div>
+
+                <div class="schedule-item">
+                  <div class="schedule-time-block">
+                    <div class="schedule-time-period">上午早</div>
+                    <div class="schedule-time-range">08:30-10:00</div>
+                  </div>
+                  <div class="schedule-info">
+                    <div class="schedule-customer">陕西省政府</div>
+                    <div class="schedule-meta">
+                      <span class="schedule-meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        李老师
+                      </span>
+                      <span class="schedule-device-tag">电脑维修</span>
+                    </div>
+                  </div>
+                  <div class="schedule-delete">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </div>
+                </div>
+
+                <div class="schedule-item">
+                  <div class="schedule-time-block" style="background:linear-gradient(135deg,#FFF3E8,#FFE0B8);">
+                    <div class="schedule-time-period" style="color:#FF7D00;">上午</div>
+                    <div class="schedule-time-range">10:00-11:30</div>
+                  </div>
+                  <div class="schedule-info">
+                    <div class="schedule-customer">曲江金控</div>
+                    <div class="schedule-meta">
+                      <span class="schedule-meta-item">
+                        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        张老师
+                      </span>
+                      <span class="schedule-device-tag">网络调试</span>
+                    </div>
+                  </div>
+                  <div class="schedule-delete">
+                    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 浮动添加按钮 -->
+            <button class="add-schedule-btn">
+              <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              添加排期
+            </button>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 工程师选择面板 ===== -->
+      <dc-artboard id="engineer-select" label="选择工程师" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">工程师排期</div>
+            </div>
+
+            <div class="page-content" style="opacity:0.5;">
+              <div class="engineer-selector">
+                <div class="engineer-selector-avatar">
+                  张
+                  <div class="online-dot"></div>
+                </div>
+                <div class="engineer-selector-info">
+                  <div class="engineer-selector-name">张工 <span class="engineer-selector-tag">在线</span></div>
+                  <div class="engineer-selector-desc">工号 HR001 · 本周已排 5 单</div>
+                </div>
+                <div class="engineer-selector-arrow" style="transform:rotate(180deg);">
+                  <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+              <div style="height:300px;background:#F2F3F5;margin:14px;border-radius:16px;"></div>
+            </div>
+
+            <!-- 底部弹出选择面板 -->
+            <div class="engineer-panel-mask">
+              <div class="engineer-panel">
+                <div class="engineer-panel-handle"></div>
+                <div class="engineer-panel-title">选择工程师</div>
+
+                <div class="engineer-panel-item selected">
+                  <div class="engineer-panel-avatar" style="background:linear-gradient(135deg,#165DFF,#4080FF);">
+                    张
+                    <div class="online-dot online"></div>
+                  </div>
+                  <div class="engineer-panel-info">
+                    <div class="engineer-panel-name">张工 <span class="engineer-panel-id">HR001</span></div>
+                    <div class="engineer-panel-skills">门禁维修 · 网络调试 · 电脑维护</div>
+                    <div class="engineer-panel-load">
+                      <span class="load-bar"><span class="load-bar-fill" style="width:60%;background:#FF7D00;"></span></span>
+                      <span class="load-text">本周负载 60%</span>
+                    </div>
+                  </div>
+                  <div class="engineer-panel-check">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+
+                <div class="engineer-panel-item">
+                  <div class="engineer-panel-avatar" style="background:linear-gradient(135deg,#722ED1,#9254DE);">
+                    李
+                    <div class="online-dot online"></div>
+                  </div>
+                  <div class="engineer-panel-info">
+                    <div class="engineer-panel-name">李工 <span class="engineer-panel-id">HR002</span></div>
+                    <div class="engineer-panel-skills">车牌识别 · 道闸维修 · 监控系统</div>
+                    <div class="engineer-panel-load">
+                      <span class="load-bar"><span class="load-bar-fill" style="width:40%;background:#00B42A;"></span></span>
+                      <span class="load-text">本周负载 40%</span>
+                    </div>
+                  </div>
+                  <div class="engineer-panel-check">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+
+                <div class="engineer-panel-item">
+                  <div class="engineer-panel-avatar" style="background:linear-gradient(135deg,#00B42A,#23C343);">
+                    王
+                    <div class="online-dot offline"></div>
+                  </div>
+                  <div class="engineer-panel-info">
+                    <div class="engineer-panel-name">王工 <span class="engineer-panel-id">HR003</span></div>
+                    <div class="engineer-panel-skills">人脸识别 · 软件调试 · 网络布线</div>
+                    <div class="engineer-panel-load">
+                      <span class="load-bar"><span class="load-bar-fill" style="width:80%;background:#F53F3F;"></span></span>
+                      <span class="load-text">本周负载 80%</span>
+                    </div>
+                  </div>
+                  <div class="engineer-panel-check">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+
+                <div class="engineer-panel-item">
+                  <div class="engineer-panel-avatar" style="background:linear-gradient(135deg,#FF7D00,#FF9A2E);">
+                    赵
+                    <div class="online-dot online"></div>
+                  </div>
+                  <div class="engineer-panel-info">
+                    <div class="engineer-panel-name">赵工 <span class="engineer-panel-id">HR004</span></div>
+                    <div class="engineer-panel-skills">打印机维修 · 办公设备 · 耗材更换</div>
+                    <div class="engineer-panel-load">
+                      <span class="load-bar"><span class="load-bar-fill" style="width:20%;background:#00B42A;"></span></span>
+                      <span class="load-text">本周负载 20%</span>
+                    </div>
+                  </div>
+                  <div class="engineer-panel-check">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+    </dc-section>
+  </design-canvas>
+</div>
+
+</body>
+</html>

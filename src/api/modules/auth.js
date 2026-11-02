@@ -19,3 +19,8 @@ export function getUserInfo() {
 export function changePassword(data) {
   return request.put('/auth/password', data)
 }
+
+/** PUT /auth/profile  { realName, phone, avatar } => 更新后的用户信息 */
+export function updateProfile(data) {
+  return request.put('/auth/profile', data)
+}

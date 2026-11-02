@@ -1,0 +1,2782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT运维报修小程序 - 主页设计</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/design-canvas.js"></script>
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/ios-frame.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #E8ECF1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+
+  /* ===== 设计画布容器 ===== */
+  .canvas-wrap {
+    width: 100%;
+    max-width: 480px;
+  }
+
+  /* ===== 手机屏幕内容 ===== */
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    background: #F5F7FA;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 顶部渐变Header */
+  .header {
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 60%, #5B8DEF 100%);
+    padding: 56px 20px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: -30px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .user-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 20px;
+    border: 2px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+  }
+  .user-info { flex: 1; }
+  .user-name {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .user-role {
+    color: rgba(255,255,255,0.75);
+    font-size: 12px;
+  }
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .header-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 12px;
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(10px);
+  }
+
+  /* 未登录状态 Header */
+  .guest-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .guest-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    border: 2px dashed rgba(255,255,255,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    backdrop-filter: blur(10px);
+  }
+  .guest-avatar svg {
+    width: 26px;
+    height: 26px;
+    stroke: rgba(255,255,255,0.7);
+    stroke-width: 1.8;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .guest-info { flex: 1; }
+  .guest-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 3px;
+  }
+  .guest-desc {
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+  }
+  .login-btn {
+    padding: 10px 22px;
+    border-radius: 24px;
+    background: #fff;
+    color: #165DFF;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  /* 未登录统计卡片 */
+  .stats-guest {
+    margin: -60px 16px 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 20px;
+    box-shadow: 0 8px 30px rgba(22, 93, 255, 0.12);
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stats-guest-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #E8F3FF, #D4E6FF);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stats-guest-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: #165DFF;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .stats-guest-content { flex: 1; }
+  .stats-guest-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1D2129;
+    margin-bottom: 2px;
+  }
+  .stats-guest-desc {
+    font-size: 12px;
+    color: #86909C;
+  }
+  .stats-guest-btn {
+    padding: 8px 16px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  /* 统计卡片 */
+  .stats-card {
+    margin: -60px 16px 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 0;
+    display: flex;
+    box-shadow: 0 8px 30px rgba(22, 93, 255, 0.12);
+    position: relative;
+    z-index: 2;
+  }
+  .stat-item {
+    flex: 1;
+    text-align: center;
+    position: relative;
+  }
+  .stat-item:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 32px;
+    background: #E5E6EB;
+  }
+  .stat-num {
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .stat-num.blue { color: #165DFF; }
+  .stat-num.orange { color: #FF7D00; }
+  .stat-num.green { color: #00B42A; }
+  .stat-label {
+    font-size: 12px;
+    color: #86909C;
+    margin-top: 4px;
+  }
+
+  /* 功能区 */
+  .section {
+    padding: 20px 16px 0;
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title::before {
+    content: '';
+    width: 4px;
+    height: 16px;
+    background: linear-gradient(180deg, #165DFF, #4080FF);
+    border-radius: 2px;
+  }
+
+  .func-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .func-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .func-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .func-icon svg {
+    width: 24px;
+    height: 24px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .func-icon.repair { background: linear-gradient(135deg, #FF7D00, #FF9A2E); }
+  .func-icon.mine { background: linear-gradient(135deg, #165DFF, #4080FF); }
+  .func-icon.schedule { background: linear-gradient(135deg, #722ED1, #9254DE); }
+  .func-icon.complaint { background: linear-gradient(135deg, #F53F3F, #F76560); }
+  .func-icon.contact { background: linear-gradient(135deg, #00B42A, #23C343); }
+  .func-icon .badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #F53F3F;
+    color: #fff;
+    font-size: 10px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    font-weight: 600;
+    border: 2px solid #fff;
+  }
+  .func-label {
+    font-size: 12px;
+    color: #4E5969;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  /* 文章区 */
+  .article-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 80px;
+  }
+  .article-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .article-card:active { transform: scale(0.98); }
+  .article-thumb {
+    width: 90px;
+    height: 90px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .article-thumb.printer {
+    background: linear-gradient(135deg, #E8F3FF, #BEDAFF);
+  }
+  .article-thumb.case {
+    background: linear-gradient(135deg, #FFF3E8, #FFD8A8);
+  }
+  .article-thumb.system {
+    background: linear-gradient(135deg, #E8FFEA, #A8E6B0);
+  }
+  .article-thumb.network {
+    background: linear-gradient(135deg, #F0E8FF, #D4BFFF);
+  }
+  .article-thumb svg {
+    width: 40px;
+    height: 40px;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .article-thumb.printer svg { stroke: #165DFF; }
+  .article-thumb.case svg { stroke: #FF7D00; }
+  .article-thumb.system svg { stroke: #00B42A; }
+  .article-thumb.network svg { stroke: #722ED1; }
+
+  .article-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .article-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1D2129;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .article-desc {
+    font-size: 12px;
+    color: #86909C;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .article-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .article-tag {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .tag-tutorial { background: #E8F3FF; color: #165DFF; }
+  .tag-case { background: #FFF3E8; color: #FF7D00; }
+  .tag-guide { background: #E8FFEA; color: #00B42A; }
+  .article-views {
+    font-size: 11px;
+    color: #C9CDD4;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .article-views svg {
+    width: 12px;
+    height: 12px;
+    stroke: #C9CDD4;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  /* 底部TabBar */
+  .tabbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid #E5E6EB;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 6px;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 10;
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+  }
+  .tab-item svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .tab-item.active svg { stroke: #165DFF; }
+  .tab-item:not(.active) svg { stroke: #86909C; }
+  .tab-item.active .tab-label { color: #165DFF; font-weight: 600; }
+  .tab-item:not(.active) .tab-label { color: #86909C; }
+  .tab-label {
+    font-size: 10px;
+  }
+  .tab-item.center .tab-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF7D00, #FF9A2E);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: -18px;
+    box-shadow: 0 4px 12px rgba(255,125,0,0.4);
+  }
+  .tab-item.center .tab-icon-wrap svg {
+    stroke: #fff;
+    width: 24px;
+    height: 24px;
+  }
+  .tab-item.center .tab-label { color: #FF7D00; font-weight: 600; margin-top: 2px; }
+
+  /* 两栏TabBar */
+  .tabbar-two {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: rgba(255,255,255,0.95);
+    backdrop-filter: blur(20px);
+    border-top: 1px solid #E5E6EB;
+    display: flex;
+    align-items: center;
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: 10;
+  }
+  .tabbar-two .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    padding-top: 8px;
+  }
+  .tabbar-two .tab-item svg {
+    width: 24px;
+    height: 24px;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .tabbar-two .tab-item.active svg { stroke: #165DFF; }
+  .tabbar-two .tab-item:not(.active) svg { stroke: #86909C; }
+  .tabbar-two .tab-item.active .tab-label { color: #165DFF; font-weight: 600; }
+  .tabbar-two .tab-item:not(.active) .tab-label { color: #86909C; }
+  .tabbar-two .tab-label { font-size: 11px; }
+
+  /* ===== 我的页面样式 ===== */
+  .profile-header {
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 60%, #5B8DEF 100%);
+    padding: 56px 20px 70px;
+    position: relative;
+    overflow: hidden;
+  }
+  .profile-header::before {
+    content: '';
+    position: absolute;
+    top: -60px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .profile-header::after {
+    content: '';
+    position: absolute;
+    bottom: -80px;
+    left: -30px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .profile-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 20px;
+  }
+  .profile-top-title {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .profile-setting-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+  }
+  .profile-setting-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .profile-user-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .profile-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 26px;
+    border: 3px solid rgba(255,255,255,0.35);
+    flex-shrink: 0;
+  }
+  .profile-user-info { flex: 1; }
+  .profile-user-name {
+    color: #fff;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .profile-vip-tag {
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .profile-user-desc {
+    color: rgba(255,255,255,0.8);
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .profile-user-dept {
+    color: rgba(255,255,255,0.6);
+    font-size: 12px;
+  }
+
+  /* 我的页面统计卡片 */
+  .profile-stats {
+    margin: -50px 16px 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 0;
+    display: flex;
+    box-shadow: 0 8px 30px rgba(22, 93, 255, 0.12);
+    position: relative;
+    z-index: 2;
+  }
+
+  /* 菜单分组 */
+  .menu-group {
+    margin: 16px 16px 0;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .menu-group-title {
+    padding: 14px 16px 8px;
+    font-size: 13px;
+    color: #86909C;
+    font-weight: 500;
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 12px;
+    border-bottom: 1px solid #F2F3F5;
+    cursor: pointer;
+  }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .menu-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .menu-icon.blue { background: linear-gradient(135deg, #165DFF, #4080FF); }
+  .menu-icon.orange { background: linear-gradient(135deg, #FF7D00, #FF9A2E); }
+  .menu-icon.purple { background: linear-gradient(135deg, #722ED1, #9254DE); }
+  .menu-icon.red { background: linear-gradient(135deg, #F53F3F, #F76560); }
+  .menu-icon.green { background: linear-gradient(135deg, #00B42A, #23C343); }
+  .menu-icon.cyan { background: linear-gradient(135deg, #14C9C9, #36CFC9); }
+  .menu-icon.gray { background: linear-gradient(135deg, #86909C, #A9AEB8); }
+  .menu-text {
+    flex: 1;
+    font-size: 15px;
+    color: #1D2129;
+    font-weight: 500;
+  }
+  .menu-badge {
+    background: #F53F3F;
+    color: #fff;
+    font-size: 10px;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+  .menu-arrow {
+    width: 16px;
+    height: 16px;
+    stroke: #C9CDD4;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+
+  /* 退出登录按钮 */
+  .logout-btn {
+    margin: 24px 16px 80px;
+    padding: 14px;
+    background: #fff;
+    border-radius: 14px;
+    text-align: center;
+    color: #F53F3F;
+    font-size: 15px;
+    font-weight: 500;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+    cursor: pointer;
+  }
+
+  /* ===== 未登录我的页面 ===== */
+  .profile-guest-hero {
+    margin: -50px 16px 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 20px;
+    box-shadow: 0 8px 30px rgba(22, 93, 255, 0.12);
+    position: relative;
+    z-index: 2;
+    text-align: center;
+  }
+  .profile-guest-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #F2F3F5, #E5E6EB);
+    border: 3px solid #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 14px;
+  }
+  .profile-guest-avatar svg {
+    width: 36px;
+    height: 36px;
+    stroke: #C9CDD4;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .profile-guest-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 6px;
+  }
+  .profile-guest-desc {
+    font-size: 13px;
+    color: #86909C;
+    margin-bottom: 18px;
+  }
+  .profile-guest-login-btn {
+    display: inline-block;
+    padding: 12px 48px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 4px 14px rgba(22,93,255,0.35);
+    cursor: pointer;
+  }
+  .profile-guest-features {
+    margin: 20px 16px 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .profile-guest-feature {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .profile-guest-feature-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .profile-guest-feature-icon svg {
+    width: 20px;
+    height: 20px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .profile-guest-feature-icon.blue { background: linear-gradient(135deg, #165DFF, #4080FF); }
+  .profile-guest-feature-icon.green { background: linear-gradient(135deg, #00B42A, #23C343); }
+  .profile-guest-feature-icon.gray { background: linear-gradient(135deg, #86909C, #A9AEB8); }
+  .profile-guest-feature-label {
+    font-size: 12px;
+    color: #4E5969;
+    font-weight: 500;
+  }
+
+  /* 已登录首页Header */
+  .header-logged .user-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  .header-logged .avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 20px;
+    border: 2px solid rgba(255,255,255,0.3);
+    flex-shrink: 0;
+  }
+  .header-logged .user-info { flex: 1; }
+  .header-logged .user-name {
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .header-logged .user-role {
+    color: rgba(255,255,255,0.75);
+    font-size: 12px;
+  }
+  .header-logged .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .header-logged .header-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 12px;
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(10px);
+  }
+
+  /* ===== 登录页面 ===== */
+  .login-page {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .login-top {
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 60%, #5B8DEF 100%);
+    padding: 60px 24px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .login-top::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -60px;
+    width: 240px;
+    height: 240px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .login-top::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: -40px;
+    width: 180px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .login-close {
+    position: absolute;
+    top: 50px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    backdrop-filter: blur(10px);
+  }
+  .login-close svg {
+    width: 18px;
+    height: 18px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+  .login-logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .login-logo svg {
+    width: 36px;
+    height: 36px;
+    stroke: #fff;
+    stroke-width: 1.8;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .login-title {
+    color: #fff;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+  }
+  .login-subtitle {
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .login-form-wrap {
+    flex: 1;
+    margin: -50px 20px 0;
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 20px 24px;
+    box-shadow: 0 -4px 30px rgba(22, 93, 255, 0.1);
+    position: relative;
+    z-index: 2;
+  }
+  .login-tabs {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #F2F3F5;
+  }
+  .login-tab {
+    padding: 10px 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #86909C;
+    position: relative;
+    cursor: pointer;
+  }
+  .login-tab.active {
+    color: #165DFF;
+    font-weight: 700;
+  }
+  .login-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #165DFF, #4080FF);
+    border-radius: 2px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+  .form-label {
+    font-size: 13px;
+    color: #4E5969;
+    font-weight: 500;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .form-input-wrap {
+    display: flex;
+    align-items: center;
+    background: #F7F8FA;
+    border: 1.5px solid #E5E6EB;
+    border-radius: 12px;
+    padding: 0 14px;
+    height: 50px;
+    transition: all 0.2s;
+  }
+  .form-input-wrap:focus-within {
+    border-color: #165DFF;
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(22,93,255,0.08);
+  }
+  .form-input-icon {
+    width: 20px;
+    height: 20px;
+    stroke: #86909C;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    margin-right: 10px;
+    flex-shrink: 0;
+  }
+  .form-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 15px;
+    color: #1D2129;
+    font-family: inherit;
+  }
+  .form-input::placeholder { color: #C9CDD4; }
+  .form-code-btn {
+    padding: 6px 12px;
+    background: #E8F3FF;
+    color: #165DFF;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 8px;
+    border: none;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+  .form-remember {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #4E5969;
+    cursor: pointer;
+  }
+  .form-checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1.5px solid #C9CDD4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .form-checkbox.checked {
+    background: #165DFF;
+    border-color: #165DFF;
+  }
+  .form-checkbox svg {
+    width: 12px;
+    height: 12px;
+    stroke: #fff;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .form-forgot {
+    font-size: 13px;
+    color: #165DFF;
+    cursor: pointer;
+  }
+
+  .login-submit {
+    width: 100%;
+    height: 50px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    box-shadow: 0 6px 16px rgba(22,93,255,0.3);
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+
+  .login-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .login-divider-line {
+    flex: 1;
+    height: 1px;
+    background: #E5E6EB;
+  }
+  .login-divider-text {
+    font-size: 12px;
+    color: #C9CDD4;
+  }
+
+  .login-wechat-btn {
+    width: 100%;
+    height: 50px;
+    border-radius: 25px;
+    background: #07C160;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 6px 16px rgba(7,193,96,0.25);
+    cursor: pointer;
+    margin-bottom: 24px;
+  }
+  .login-wechat-btn svg {
+    width: 22px;
+    height: 22px;
+    fill: #fff;
+  }
+
+  .login-agreement {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 12px;
+    color: #86909C;
+    line-height: 1.6;
+  }
+  .login-agreement .form-checkbox { margin-top: 2px; flex-shrink: 0; }
+  .login-agreement a {
+    color: #165DFF;
+    text-decoration: none;
+  }
+
+  .login-bottom {
+    text-align: center;
+    padding: 16px 20px 30px;
+    font-size: 13px;
+    color: #86909C;
+  }
+  .login-bottom a {
+    color: #165DFF;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  /* ===== 功能页面通用样式 ===== */
+  .page {
+    width: 100%;
+    height: 100%;
+    background: #F5F7FA;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .navbar {
+    height: 88px;
+    padding-top: 44px;
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .navbar-title { color: #fff; font-size: 17px; font-weight: 600; }
+  .navbar-back {
+    position: absolute; left: 16px; bottom: 12px;
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;
+  }
+  .navbar-back svg {
+    width: 22px; height: 22px; stroke: #fff; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .page-content { flex: 1; overflow-y: auto; padding-bottom: 80px; }
+
+  .form-card {
+    margin: 16px; background: #fff; border-radius: 16px; padding: 20px 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .form-card-title {
+    font-size: 16px; font-weight: 700; color: #1D2129; margin-bottom: 4px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .form-card-title svg {
+    width: 20px; height: 20px; stroke: #165DFF; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .form-card-desc { font-size: 12px; color: #86909C; margin-bottom: 18px; }
+  .form-row { margin-bottom: 16px; }
+  .form-row:last-child { margin-bottom: 0; }
+  .form-row-label {
+    font-size: 14px; color: #4E5969; font-weight: 500; margin-bottom: 8px;
+    display: flex; align-items: center;
+  }
+  .form-row-label .required { color: #F53F3F; margin-right: 2px; }
+  .form-row-input {
+    height: 46px; background: #F7F8FA; border: 1.5px solid #E5E6EB;
+    border-radius: 10px; padding: 0 14px; display: flex; align-items: center;
+    font-size: 14px; color: #1D2129;
+  }
+  .form-row-input.placeholder { color: #C9CDD4; }
+  .form-row-input svg {
+    width: 18px; height: 18px; stroke: #86909C; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round; margin-left: auto;
+  }
+  .form-row-textarea {
+    min-height: 100px; background: #F7F8FA; border: 1.5px solid #E5E6EB;
+    border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #C9CDD4;
+    line-height: 1.5; position: relative;
+  }
+  .form-row-textarea .count {
+    position: absolute; right: 14px; bottom: 8px; font-size: 11px; color: #C9CDD4;
+  }
+  .form-row-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .radio-group {
+    display: flex; background: #F2F3F5; border-radius: 10px; padding: 4px;
+  }
+  .radio-item {
+    flex: 1; text-align: center; padding: 10px 0; font-size: 14px;
+    color: #4E5969; border-radius: 8px; font-weight: 500;
+  }
+  .radio-item.active {
+    background: linear-gradient(135deg, #165DFF, #4080FF); color: #fff;
+    box-shadow: 0 2px 8px rgba(22,93,255,0.3);
+  }
+  .urgency-group { display: flex; gap: 8px; }
+  .urgency-item {
+    flex: 1; text-align: center; padding: 10px 0; font-size: 13px;
+    color: #4E5969; border-radius: 8px; border: 1.5px solid #E5E6EB;
+    background: #fff; font-weight: 500;
+  }
+  .urgency-item.active-urgent { background: #FFF1F0; border-color: #F53F3F; color: #F53F3F; }
+  .urgency-item.active-normal { background: #E8F3FF; border-color: #165DFF; color: #165DFF; }
+  .urgency-item.active-low { background: #E8FFEA; border-color: #00B42A; color: #00B42A; }
+
+  .upload-area {
+    width: 100px; height: 100px; border: 1.5px dashed #C9CDD4; border-radius: 10px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; background: #F7F8FA;
+  }
+  .upload-area svg {
+    width: 28px; height: 28px; stroke: #C9CDD4; stroke-width: 1.5; fill: none;
+    stroke-linecap: round;
+  }
+  .upload-area span { font-size: 12px; color: #C9CDD4; }
+
+  .bottom-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: #fff; border-top: 1px solid #F2F3F5; z-index: 10;
+  }
+  .primary-btn {
+    width: 100%; height: 48px; border-radius: 24px;
+    background: linear-gradient(135deg, #165DFF, #4080FF); color: #fff;
+    font-size: 16px; font-weight: 600; border: none;
+    box-shadow: 0 4px 14px rgba(22,93,255,0.3);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .primary-btn svg {
+    width: 18px; height: 18px; stroke: #fff; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .page-tabs {
+    display: flex; background: #fff; padding: 0 16px;
+    border-bottom: 1px solid #F2F3F5; gap: 24px; flex-shrink: 0;
+  }
+  .page-tab {
+    padding: 14px 0; font-size: 15px; color: #4E5969; font-weight: 500;
+    position: relative; display: flex; align-items: center; gap: 4px;
+  }
+  .page-tab.active { color: #165DFF; font-weight: 700; }
+  .page-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, #165DFF, #4080FF); border-radius: 2px;
+  }
+  .page-tab svg {
+    width: 16px; height: 16px; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .filter-tabs {
+    display: flex; background: #fff; padding: 0 12px; overflow-x: auto;
+    gap: 4px; border-bottom: 1px solid #F2F3F5; flex-shrink: 0;
+  }
+  .filter-tab {
+    padding: 12px 12px; font-size: 13px; color: #4E5969; font-weight: 500;
+    white-space: nowrap; position: relative;
+  }
+  .filter-tab.active { color: #165DFF; font-weight: 600; }
+  .filter-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 12px; right: 12px; height: 3px;
+    background: linear-gradient(90deg, #165DFF, #4080FF); border-radius: 2px;
+  }
+
+  .order-card {
+    margin: 12px 16px; background: #fff; border-radius: 14px; padding: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .order-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid #F2F3F5;
+  }
+  .order-no { font-size: 13px; color: #86909C; font-weight: 500; }
+  .order-status {
+    padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  }
+  .status-processing { background: #FFF7E8; color: #FF7D00; }
+  .status-done { background: #E8FFEA; color: #00B42A; }
+  .status-cancel { background: #F2F3F5; color: #86909C; }
+  .status-pending { background: #E8F3FF; color: #165DFF; }
+  .order-info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px; font-size: 13px;
+  }
+  .order-info-label { color: #86909C; flex-shrink: 0; width: 70px; }
+  .order-info-value { color: #1D2129; font-weight: 500; flex: 1; text-align: right; }
+  .order-info-value.urgent { color: #F53F3F; }
+  .order-card-footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid #F2F3F5;
+  }
+  .order-engineer {
+    display: flex; align-items: center; gap: 6px; font-size: 13px; color: #4E5969;
+  }
+  .order-engineer-avatar {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: linear-gradient(135deg, #165DFF, #4080FF); color: #fff;
+    font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;
+  }
+  .order-detail-btn {
+    color: #165DFF; font-size: 13px; font-weight: 500;
+    display: flex; align-items: center; gap: 2px;
+  }
+  .order-detail-btn svg {
+    width: 14px; height: 14px; stroke: #165DFF; stroke-width: 2; fill: none;
+    stroke-linecap: round;
+  }
+
+  .detail-header {
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%);
+    padding: 50px 20px 30px; text-align: center; position: relative;
+  }
+  .detail-status { color: #fff; font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+  .detail-order-no { color: rgba(255,255,255,0.8); font-size: 13px; }
+  .detail-card {
+    margin: 16px; background: #fff; border-radius: 16px; padding: 18px 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  }
+  .detail-card-title {
+    font-size: 15px; font-weight: 700; color: #1D2129; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .detail-card-title svg {
+    width: 18px; height: 18px; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .detail-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .detail-info-item { display: flex; flex-direction: column; gap: 4px; }
+  .detail-info-item.full { grid-column: 1 / -1; }
+  .detail-info-label { font-size: 12px; color: #86909C; }
+  .detail-info-value { font-size: 14px; color: #1D2129; font-weight: 500; }
+  .detail-info-value.tag {
+    display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 12px; width: fit-content;
+  }
+
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 7px; top: 6px; bottom: 6px; width: 2px; background: #E5E6EB;
+  }
+  .timeline-item { position: relative; padding-bottom: 20px; }
+  .timeline-item:last-child { padding-bottom: 0; }
+  .timeline-dot {
+    position: absolute; left: -24px; top: 2px; width: 16px; height: 16px;
+    border-radius: 50%; background: #fff; border: 3px solid #165DFF; z-index: 1;
+  }
+  .timeline-dot.done { background: #165DFF; }
+  .timeline-dot.pending { border-color: #C9CDD4; }
+  .timeline-time { font-size: 12px; color: #86909C; margin-bottom: 4px; }
+  .timeline-content { font-size: 14px; color: #1D2129; font-weight: 500; }
+  .timeline-content.pending { color: #86909C; }
+
+  .schedule-selector {
+    display: flex; align-items: center; padding: 12px 16px; background: #fff;
+    border-bottom: 1px solid #F2F3F5; gap: 8px;
+  }
+  .schedule-selector-label { font-size: 14px; color: #4E5969; }
+  .schedule-selector-value {
+    font-size: 14px; color: #165DFF; font-weight: 600;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .schedule-selector-value svg { width: 14px; height: 14px; stroke: #165DFF; stroke-width: 2; fill: none; }
+  .calendar-wrap {
+    margin: 12px 16px; background: #fff; border-radius: 14px; padding: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .calendar-nav {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+  }
+  .calendar-nav-btn {
+    width: 28px; height: 28px; border-radius: 8px; background: #F2F3F5;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .calendar-nav-btn svg {
+    width: 16px; height: 16px; stroke: #4E5969; stroke-width: 2; fill: none; stroke-linecap: round;
+  }
+  .calendar-nav-title { font-size: 15px; font-weight: 600; color: #1D2129; }
+  .calendar-grid { display: grid; grid-template-columns: 50px repeat(7, 1fr); gap: 4px; }
+  .calendar-time-label {
+    font-size: 10px; color: #86909C; display: flex; align-items: center;
+    justify-content: center; text-align: center; line-height: 1.2;
+  }
+  .calendar-day-header {
+    font-size: 11px; color: #4E5969; text-align: center; font-weight: 500; padding-bottom: 4px;
+  }
+  .calendar-day-header.today { color: #165DFF; font-weight: 700; }
+  .calendar-day-header .date { font-size: 10px; color: #86909C; font-weight: 400; }
+  .calendar-cell {
+    height: 32px; border-radius: 6px; background: #E8FFEA;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: #00B42A; font-weight: 500;
+  }
+  .calendar-cell.busy { background: #FFF1F0; color: #F53F3F; }
+
+  .schedule-list-title {
+    padding: 8px 16px; font-size: 14px; font-weight: 600; color: #4E5969;
+  }
+  .schedule-item {
+    margin: 0 16px 10px; background: #fff; border-radius: 12px; padding: 14px;
+    display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .schedule-item-time { flex-shrink: 0; text-align: center; }
+  .schedule-item-date { font-size: 13px; color: #1D2129; font-weight: 600; }
+  .schedule-item-slot { font-size: 11px; color: #86909C; margin-top: 2px; }
+  .schedule-item-customer { flex: 1; font-size: 14px; color: #1D2129; font-weight: 500; }
+  .schedule-item-delete {
+    width: 28px; height: 28px; border-radius: 50%; background: #FFF1F0;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .schedule-item-delete svg {
+    width: 14px; height: 14px; stroke: #F53F3F; stroke-width: 2; fill: none; stroke-linecap: round;
+  }
+
+  .company-hero {
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%);
+    padding: 50px 20px 60px; text-align: center; position: relative; overflow: hidden;
+  }
+  .company-hero::before {
+    content: ''; position: absolute; top: -60px; right: -40px; width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%); border-radius: 50%;
+  }
+  .company-logo {
+    width: 64px; height: 64px; border-radius: 18px; background: rgba(255,255,255,0.2);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+    position: relative; z-index: 1; border: 1px solid rgba(255,255,255,0.3); backdrop-filter: blur(10px);
+  }
+  .company-logo span { color: #fff; font-size: 24px; font-weight: 700; }
+  .company-name { color: #fff; font-size: 20px; font-weight: 700; margin-bottom: 6px; position: relative; z-index: 1; }
+  .company-slogan { color: rgba(255,255,255,0.8); font-size: 13px; position: relative; z-index: 1; }
+  .company-info-card {
+    margin: -40px 16px 0; background: #fff; border-radius: 16px; padding: 20px 16px;
+    box-shadow: 0 8px 30px rgba(22,93,255,0.12); position: relative; z-index: 2;
+  }
+  .company-info-item {
+    display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #F2F3F5;
+  }
+  .company-info-item:last-child { border-bottom: none; padding-bottom: 0; }
+  .company-info-item:first-child { padding-top: 0; }
+  .company-info-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .company-info-icon svg {
+    width: 18px; height: 18px; stroke: #fff; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .company-info-icon.blue { background: linear-gradient(135deg, #165DFF, #4080FF); }
+  .company-info-icon.green { background: linear-gradient(135deg, #00B42A, #23C343); }
+  .company-info-icon.orange { background: linear-gradient(135deg, #FF7D00, #FF9A2E); }
+  .company-info-text { flex: 1; }
+  .company-info-label { font-size: 12px; color: #86909C; margin-bottom: 2px; }
+  .company-info-value { font-size: 14px; color: #1D2129; font-weight: 500; }
+  .nav-btn {
+    margin: 16px; height: 48px; border-radius: 24px;
+    background: linear-gradient(135deg, #165DFF, #4080FF); color: #fff;
+    font-size: 16px; font-weight: 600; border: none;
+    box-shadow: 0 4px 14px rgba(22,93,255,0.3);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .nav-btn svg {
+    width: 18px; height: 18px; stroke: #fff; stroke-width: 2; fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  .engineer-section-title {
+    padding: 8px 16px 12px; font-size: 16px; font-weight: 700; color: #1D2129;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .engineer-section-title svg {
+    width: 20px; height: 20px; stroke: #165DFF; stroke-width: 2; fill: none;
+  }
+  .engineer-card {
+    margin: 0 16px 12px; background: #fff; border-radius: 14px; padding: 16px;
+    display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+  }
+  .engineer-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 20px; font-weight: 700; flex-shrink: 0;
+  }
+  .engineer-info { flex: 1; }
+  .engineer-name { font-size: 16px; font-weight: 600; color: #1D2129; margin-bottom: 4px; }
+  .engineer-skills { font-size: 12px; color: #86909C; line-height: 1.4; }
+  .engineer-contact-btn {
+    padding: 8px 16px; border-radius: 18px; background: #E8F3FF; color: #165DFF;
+    font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  }
+  .engineer-contact-btn svg {
+    width: 14px; height: 14px; stroke: #165DFF; stroke-width: 2; fill: none; stroke-linecap: round;
+  }
+
+  /* 设计画布标题 */
+  .design-label {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .design-label h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 6px;
+  }
+  .design-label p {
+    font-size: 13px;
+    color: #86909C;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas-wrap">
+  <div class="design-label">
+    <h1>IT运维报修小程序 · 完整页面设计</h1>
+    <p>首页/我的/登录 + 一键报修/工单列表/工单详情/排期/投诉/联系我们 · 11页整合</p>
+  </div>
+
+  <design-canvas>
+    <dc-section title="主页设计方案" subtitle="iPhone 14 · 390×844">
+      <dc-artboard id="home-guest" label="首页·未登录" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="phone-screen">
+
+            <!-- ===== 顶部Header（未登录） ===== -->
+            <div class="header">
+              <div class="guest-row">
+                <div class="guest-avatar">
+                  <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </div>
+                <div class="guest-info">
+                  <div class="guest-title">欢迎使用运维报修</div>
+                  <div class="guest-desc">登录后查看工单进度与专属服务</div>
+                </div>
+                <button class="login-btn">登录 / 注册</button>
+              </div>
+            </div>
+
+            <!-- ===== 统计卡片（未登录） ===== -->
+            <div class="stats-guest">
+              <div class="stats-guest-icon">
+                <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              </div>
+              <div class="stats-guest-content">
+                <div class="stats-guest-title">登录后查看我的报修数据</div>
+                <div class="stats-guest-desc">实时追踪处理进度，历史工单一键查询</div>
+              </div>
+              <button class="stats-guest-btn">立即登录</button>
+            </div>
+
+            <!-- ===== 功能区 ===== -->
+            <div class="section">
+              <div class="section-title">快捷功能</div>
+              <div class="func-grid">
+                <div class="func-item">
+                  <div class="func-icon repair">
+                    <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  </div>
+                  <div class="func-label">一键报修</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon mine">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <span class="badge">3</span>
+                  </div>
+                  <div class="func-label">我的报修</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon schedule">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <div class="func-label">工程师排期</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon complaint">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </div>
+                  <div class="func-label">投诉建议</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon contact">
+                    <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  </div>
+                  <div class="func-label">联系我们</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ===== 文章内容区 ===== -->
+            <div class="section">
+              <div class="section-title">技术知识库</div>
+              <div class="article-list">
+
+                <div class="article-card">
+                  <div class="article-thumb printer">
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">国产操作系统如何安装打印机驱动？统信UOS完整教程</div>
+                      <div class="article-desc">适配惠普、佳能、爱普生等主流品牌，一步一步教你搞定</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-tutorial">驱动安装</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        2.3k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="article-card">
+                  <div class="article-thumb case">
+                    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">打印机常见故障排查：卡纸、偏淡、异响三分钟解决</div>
+                      <div class="article-desc">京瓷P8060、惠普P1106等机型实战案例汇总</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-case">故障案例</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        1.8k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="article-card">
+                  <div class="article-thumb system">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">Windows网络配置丢失修复：Winsock重置与DNS刷新指南</div>
+                      <div class="article-desc">无法上网、IP冲突、DNS解析失败的完整排查流程</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-guide">系统维护</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        1.5k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="article-card">
+                  <div class="article-thumb network">
+                    <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">海康POE摄像头离线排查：从交换机到网线的完整检测链路</div>
+                      <div class="article-desc">供电不足、IP冲突、网线老化逐一排除法</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-tutorial">网络运维</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        986
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ===== 底部TabBar（两栏） ===== -->
+            <div class="tabbar-two">
+              <div class="tab-item active">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="tab-label">首页</span>
+              </div>
+              <div class="tab-item">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="tab-label">我的</span>
+              </div>
+            </div>
+
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 首页·已登录 ===== -->
+      <dc-artboard id="home-logged" label="首页·已登录" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="phone-screen">
+
+            <!-- 顶部Header（已登录） -->
+            <div class="header header-logged">
+              <div class="user-row">
+                <div class="avatar">张</div>
+                <div class="user-info">
+                  <div class="user-name">张工程师</div>
+                  <div class="user-role">西安分公司 · 技术部</div>
+                </div>
+                <div class="header-actions">
+                  <div class="header-btn">改密</div>
+                  <div class="header-btn">退出</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 统计卡片（已登录） -->
+            <div class="stats-card">
+              <div class="stat-item">
+                <div class="stat-num blue">21</div>
+                <div class="stat-label">我的报修</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-num orange">10</div>
+                <div class="stat-label">处理中</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-num green">10</div>
+                <div class="stat-label">已完成</div>
+              </div>
+            </div>
+
+            <!-- 功能区 -->
+            <div class="section">
+              <div class="section-title">快捷功能</div>
+              <div class="func-grid">
+                <div class="func-item">
+                  <div class="func-icon repair">
+                    <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  </div>
+                  <div class="func-label">一键报修</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon mine">
+                    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                    <span class="badge">3</span>
+                  </div>
+                  <div class="func-label">我的报修</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon schedule">
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <div class="func-label">工程师排期</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon complaint">
+                    <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  </div>
+                  <div class="func-label">投诉建议</div>
+                </div>
+                <div class="func-item">
+                  <div class="func-icon contact">
+                    <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  </div>
+                  <div class="func-label">联系我们</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 文章内容区 -->
+            <div class="section">
+              <div class="section-title">技术知识库</div>
+              <div class="article-list">
+                <div class="article-card">
+                  <div class="article-thumb printer">
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">国产操作系统如何安装打印机驱动？统信UOS完整教程</div>
+                      <div class="article-desc">适配惠普、佳能、爱普生等主流品牌，一步一步教你搞定</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-tutorial">驱动安装</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        2.3k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="article-card">
+                  <div class="article-thumb case">
+                    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">打印机常见故障排查：卡纸、偏淡、异响三分钟解决</div>
+                      <div class="article-desc">京瓷P8060、惠普P1106等机型实战案例汇总</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-case">故障案例</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        1.8k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="article-card">
+                  <div class="article-thumb system">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">Windows网络配置丢失修复：Winsock重置与DNS刷新指南</div>
+                      <div class="article-desc">无法上网、IP冲突、DNS解析失败的完整排查流程</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-guide">系统维护</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        1.5k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div class="article-card">
+                  <div class="article-thumb network">
+                    <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">海康POE摄像头离线排查：从交换机到网线的完整检测链路</div>
+                      <div class="article-desc">供电不足、IP冲突、网线老化逐一排除法</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-tutorial">网络运维</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        986
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 底部TabBar -->
+            <div class="tabbar-two">
+              <div class="tab-item active">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="tab-label">首页</span>
+              </div>
+              <div class="tab-item">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="tab-label">我的</span>
+              </div>
+            </div>
+
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 我的·已登录 ===== -->
+      <dc-artboard id="profile-logged" label="我的·已登录" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="phone-screen">
+
+            <!-- 顶部Header -->
+            <div class="profile-header">
+              <div class="profile-top">
+                <div class="profile-top-title">个人中心</div>
+                <div class="profile-setting-btn">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+              </div>
+              <div class="profile-user-row">
+                <div class="profile-avatar">张</div>
+                <div class="profile-user-info">
+                  <div class="profile-user-name">
+                    张工程师
+                    <span class="profile-vip-tag">VIP</span>
+                  </div>
+                  <div class="profile-user-desc">138****8888</div>
+                  <div class="profile-user-dept">西安分公司 · 技术部</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 统计卡片 -->
+            <div class="profile-stats">
+              <div class="stat-item">
+                <div class="stat-num blue">21</div>
+                <div class="stat-label">我的报修</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-num orange">10</div>
+                <div class="stat-label">处理中</div>
+              </div>
+              <div class="stat-item">
+                <div class="stat-num green">10</div>
+                <div class="stat-label">已完成</div>
+              </div>
+            </div>
+
+            <!-- 我的服务 -->
+            <div class="menu-group">
+              <div class="menu-group-title">我的服务</div>
+              <div class="menu-item">
+                <div class="menu-icon blue">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </div>
+                <span class="menu-text">我的报修</span>
+                <span class="menu-badge">3</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon purple">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <span class="menu-text">工程师排期</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon red">
+                  <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </div>
+                <span class="menu-text">投诉建议</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon green">
+                  <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                <span class="menu-text">联系我们</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+
+            <!-- 常用工具 -->
+            <div class="menu-group">
+              <div class="menu-group-title">常用工具</div>
+              <div class="menu-item">
+                <div class="menu-icon orange">
+                  <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <span class="menu-text">地址管理</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon cyan">
+                  <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+                <span class="menu-text">消息通知</span>
+                <span class="menu-badge">5</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon gray">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <span class="menu-text">关于我们</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
+            </div>
+
+            <!-- 退出登录 -->
+            <div class="logout-btn">退出登录</div>
+
+            <!-- 底部TabBar -->
+            <div class="tabbar-two">
+              <div class="tab-item">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="tab-label">首页</span>
+              </div>
+              <div class="tab-item active">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="tab-label">我的</span>
+              </div>
+            </div>
+
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 我的·未登录 ===== -->
+      <dc-artboard id="profile-guest" label="我的·未登录" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="phone-screen">
+
+            <!-- 顶部Header -->
+            <div class="profile-header">
+              <div class="profile-top">
+                <div class="profile-top-title">个人中心</div>
+                <div class="profile-setting-btn" style="opacity:0.5;">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- 登录引导卡片 -->
+            <div class="profile-guest-hero">
+              <div class="profile-guest-avatar">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div class="profile-guest-title">您好，请登录</div>
+              <div class="profile-guest-desc">登录后查看工单进度、专属服务与个人数据</div>
+              <button class="profile-guest-login-btn">登录 / 注册</button>
+            </div>
+
+            <!-- 免登录可用功能 -->
+            <div class="profile-guest-features">
+              <div class="profile-guest-feature">
+                <div class="profile-guest-feature-icon green">
+                  <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                </div>
+                <div class="profile-guest-feature-label">联系我们</div>
+              </div>
+              <div class="profile-guest-feature">
+                <div class="profile-guest-feature-icon blue">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                </div>
+                <div class="profile-guest-feature-label">帮助中心</div>
+              </div>
+              <div class="profile-guest-feature">
+                <div class="profile-guest-feature-icon gray">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <div class="profile-guest-feature-label">关于我们</div>
+              </div>
+            </div>
+
+            <!-- 功能菜单（锁定状态） -->
+            <div class="menu-group" style="margin-top:16px; opacity:0.6;">
+              <div class="menu-group-title">登录后可用</div>
+              <div class="menu-item">
+                <div class="menu-icon blue">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </div>
+                <span class="menu-text">我的报修</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon purple">
+                  <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                </div>
+                <span class="menu-text">工程师排期</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon orange">
+                  <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                </div>
+                <span class="menu-text">地址管理</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+              <div class="menu-item">
+                <div class="menu-icon cyan">
+                  <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                </div>
+                <span class="menu-text">消息通知</span>
+                <svg class="menu-arrow" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              </div>
+            </div>
+
+            <!-- 底部TabBar -->
+            <div class="tabbar-two">
+              <div class="tab-item">
+                <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="tab-label">首页</span>
+              </div>
+              <div class="tab-item active">
+                <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span class="tab-label">我的</span>
+              </div>
+            </div>
+
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 登录页面 ===== -->
+      <dc-artboard id="login" label="登录页" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="login-page">
+
+            <!-- 顶部 -->
+            <div class="login-top">
+              <div class="login-close">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </div>
+              <div class="login-logo">
+                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              </div>
+              <div class="login-title">欢迎登录</div>
+              <div class="login-subtitle">IT运维报修服务平台</div>
+            </div>
+
+            <!-- 登录表单 -->
+            <div class="login-form-wrap">
+              <div class="login-tabs">
+                <div class="login-tab active">账号登录</div>
+                <div class="login-tab">验证码登录</div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">账号</label>
+                <div class="form-input-wrap">
+                  <svg class="form-input-icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <input class="form-input" type="text" placeholder="请输入手机号 / 用户名" value="">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">密码</label>
+                <div class="form-input-wrap">
+                  <svg class="form-input-icon" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <input class="form-input" type="password" placeholder="请输入密码" value="">
+                </div>
+              </div>
+
+              <div class="form-options">
+                <div class="form-remember">
+                  <div class="form-checkbox checked">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <span>记住密码</span>
+                </div>
+                <span class="form-forgot">忘记密码？</span>
+              </div>
+
+              <button class="login-submit">登 录</button>
+
+              <div class="login-divider">
+                <div class="login-divider-line"></div>
+                <span class="login-divider-text">其他登录方式</span>
+                <div class="login-divider-line"></div>
+              </div>
+
+              <button class="login-wechat-btn">
+                <svg viewBox="0 0 24 24"><path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"/></svg>
+                微信一键登录
+              </button>
+
+              <div class="login-agreement">
+                <div class="form-checkbox checked">
+                  <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                <span>我已阅读并同意<a>《用户协议》</a>和<a>《隐私政策》</a></span>
+              </div>
+            </div>
+
+            <div class="login-bottom">
+              还没有账号？<a>立即注册</a>
+            </div>
+
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 一键报修 ===== -->
+      <dc-artboard id="repair" label="一键报修" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">一键报修</div>
+            </div>
+            <div class="page-content">
+              <div class="form-card">
+                <div class="form-card-title">
+                  <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  报修信息
+                </div>
+                <div class="form-card-desc">请详细描述故障情况，以便工程师快速定位问题</div>
+
+                <div class="form-row">
+                  <div class="form-row-label"><span class="required">*</span>报修单位</div>
+                  <div class="form-row-input placeholder">请输入您的单位名称</div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label">工单类型</div>
+                  <div class="radio-group">
+                    <div class="radio-item active">售后上门</div>
+                    <div class="radio-item">协助送货</div>
+                  </div>
+                </div>
+
+                <div class="form-row-two">
+                  <div class="form-row">
+                    <div class="form-row-label"><span class="required">*</span>联系人</div>
+                    <div class="form-row-input placeholder">您的姓名</div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-row-label"><span class="required">*</span>联系电话</div>
+                    <div class="form-row-input placeholder">手机号码</div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label">
+                    <span class="required">*</span>用户地址
+                    <span style="margin-left:auto;color:#165DFF;font-size:12px;">获取当前位置</span>
+                  </div>
+                  <div class="form-row-input placeholder">请填写设备所在地址，或点击上方定位</div>
+                </div>
+
+                <div class="form-row-two">
+                  <div class="form-row">
+                    <div class="form-row-label">设备类型</div>
+                    <div class="form-row-input placeholder">请选择
+                      <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="form-row-label">紧急程度</div>
+                    <div class="urgency-group">
+                      <div class="urgency-item">紧急</div>
+                      <div class="urgency-item active-normal">一般</div>
+                      <div class="urgency-item">不急</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label"><span class="required">*</span>报修日期</div>
+                  <div class="form-row-input placeholder">请选择日期
+                    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label"><span class="required">*</span>基本情况</div>
+                  <div class="form-row-textarea">
+                    品牌型号、故障现象、期望维修时间等
+                    <span class="count">0/500</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label">现场照片（选填）</div>
+                  <div class="upload-area">
+                    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    <span>添加</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-bar">
+              <button class="primary-btn">
+                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                提交报修
+              </button>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 我的报修（工单列表） ===== -->
+      <dc-artboard id="order-list" label="我的报修" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">我的报修</div>
+            </div>
+            <div class="filter-tabs">
+              <div class="filter-tab active">全部</div>
+              <div class="filter-tab">待接单</div>
+              <div class="filter-tab">已预约</div>
+              <div class="filter-tab">处理中</div>
+              <div class="filter-tab">待确认</div>
+              <div class="filter-tab">已归档</div>
+            </div>
+            <div class="page-content" style="padding-bottom:20px;">
+              <div class="order-card">
+                <div class="order-card-header">
+                  <span class="order-no">工单 HR202609041100</span>
+                  <span class="order-status status-processing">处理中</span>
+                </div>
+                <div class="order-info-row"><span class="order-info-label">报修单位</span><span class="order-info-value">曲江金控</span></div>
+                <div class="order-info-row"><span class="order-info-label">设备类型</span><span class="order-info-value">电脑</span></div>
+                <div class="order-info-row"><span class="order-info-label">紧急程度</span><span class="order-info-value normal">普通</span></div>
+                <div class="order-info-row"><span class="order-info-label">报修时间</span><span class="order-info-value">2026-09-04 22:46</span></div>
+                <div class="order-card-footer">
+                  <div class="order-engineer">
+                    <div class="order-engineer-avatar">张</div>
+                    <span>张工</span>
+                  </div>
+                  <div class="order-detail-btn">详情 <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-card-header">
+                  <span class="order-no">工单 HR202609041463</span>
+                  <span class="order-status status-done">已归档</span>
+                </div>
+                <div class="order-info-row"><span class="order-info-label">报修单位</span><span class="order-info-value">大数据服务中心</span></div>
+                <div class="order-info-row"><span class="order-info-label">设备类型</span><span class="order-info-value">打印机</span></div>
+                <div class="order-info-row"><span class="order-info-label">紧急程度</span><span class="order-info-value normal">普通</span></div>
+                <div class="order-info-row"><span class="order-info-label">报修时间</span><span class="order-info-value">2026-09-04 00:33</span></div>
+                <div class="order-card-footer">
+                  <div class="order-engineer">
+                    <div class="order-engineer-avatar">张</div>
+                    <span>张工</span>
+                  </div>
+                  <div class="order-detail-btn">详情 <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-card-header">
+                  <span class="order-no">工单 HR202608312183</span>
+                  <span class="order-status status-cancel">已取消</span>
+                </div>
+                <div class="order-info-row"><span class="order-info-label">报修单位</span><span class="order-info-value">未指定</span></div>
+                <div class="order-info-row"><span class="order-info-label">设备类型</span><span class="order-info-value">未指定</span></div>
+                <div class="order-info-row"><span class="order-info-label">紧急程度</span><span class="order-info-value normal">普通</span></div>
+                <div class="order-info-row"><span class="order-info-label">报修时间</span><span class="order-info-value">2026-08-31 22:03</span></div>
+                <div class="order-card-footer">
+                  <div class="order-engineer">
+                    <div class="order-engineer-avatar">张</div>
+                    <span>张工</span>
+                  </div>
+                  <div class="order-detail-btn">详情 <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+              </div>
+
+              <div class="order-card">
+                <div class="order-card-header">
+                  <span class="order-no">工单 HR202608314247</span>
+                  <span class="order-status status-done">已归档</span>
+                </div>
+                <div class="order-info-row"><span class="order-info-label">报修单位</span><span class="order-info-value">陕西省政府</span></div>
+                <div class="order-info-row"><span class="order-info-label">设备类型</span><span class="order-info-value">电脑</span></div>
+                <div class="order-info-row"><span class="order-info-label">紧急程度</span><span class="order-info-value urgent">紧急</span></div>
+                <div class="order-info-row"><span class="order-info-label">报修时间</span><span class="order-info-value">2026-08-31 10:10</span></div>
+                <div class="order-card-footer">
+                  <div class="order-engineer">
+                    <div class="order-engineer-avatar" style="background:linear-gradient(135deg,#86909C,#A9AEB8);">?</div>
+                    <span>未分配</span>
+                  </div>
+                  <div class="order-detail-btn">详情 <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 工单详情 ===== -->
+      <dc-artboard id="order-detail" label="工单详情" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar" style="background:transparent;position:absolute;top:0;left:0;right:0;z-index:10;">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">工单详情</div>
+            </div>
+            <div class="detail-header">
+              <div class="detail-status">处理中</div>
+              <div class="detail-order-no">工单号：HR202609041100</div>
+            </div>
+            <div class="page-content" style="padding-bottom:20px;">
+              <div class="detail-card">
+                <div class="detail-card-title">
+                  <svg style="stroke:#165DFF;" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  工单信息
+                </div>
+                <div class="detail-info-grid">
+                  <div class="detail-info-item"><span class="detail-info-label">工单号</span><span class="detail-info-value">HR202609041100</span></div>
+                  <div class="detail-info-item"><span class="detail-info-label">创建时间</span><span class="detail-info-value">2026-09-04 22:46</span></div>
+                  <div class="detail-info-item"><span class="detail-info-label">报修单位</span><span class="detail-info-value">曲江金控</span></div>
+                  <div class="detail-info-item"><span class="detail-info-label">联系人</span><span class="detail-info-value">张老师</span></div>
+                  <div class="detail-info-item"><span class="detail-info-label">联系电话</span><span class="detail-info-value">19800001100</span></div>
+                  <div class="detail-info-item"><span class="detail-info-label">设备类型</span><span class="detail-info-value">电脑</span></div>
+                  <div class="detail-info-item"><span class="detail-info-label">工单类型</span><span class="detail-info-value">售后上门</span></div>
+                  <div class="detail-info-item"><span class="detail-info-label">紧急程度</span><span class="detail-info-value tag" style="background:#FFF7E8;color:#FF7D00;">普通</span></div>
+                  <div class="detail-info-item full"><span class="detail-info-label">用户地址</span><span class="detail-info-value">黄渠头二路曲江创意谷A座8楼</span></div>
+                  <div class="detail-info-item full"><span class="detail-info-label">基本情况</span><span class="detail-info-value">电脑频繁死机蓝屏</span></div>
+                </div>
+              </div>
+
+              <div class="detail-card">
+                <div class="detail-card-title">
+                  <svg style="stroke:#FF7D00;" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  服务信息
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div class="order-engineer-avatar" style="width:44px;height:44px;font-size:16px;">张</div>
+                  <div>
+                    <div style="font-size:15px;font-weight:600;color:#1D2129;">张工</div>
+                    <div style="font-size:12px;color:#86909C;margin-top:2px;">门禁维修 · 网络调试 · 电脑维护</div>
+                  </div>
+                  <div style="margin-left:auto;padding:8px 16px;border-radius:18px;background:#E8F3FF;color:#165DFF;font-size:13px;font-weight:500;display:flex;align-items:center;gap:4px;">
+                    <svg style="width:14px;height:14px;stroke:#165DFF;stroke-width:2;fill:none;" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                    联系
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-card">
+                <div class="detail-card-title">
+                  <svg style="stroke:#00B42A;" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  处理进度
+                </div>
+                <div class="timeline">
+                  <div class="timeline-item">
+                    <div class="timeline-dot done"></div>
+                    <div class="timeline-time">2026-09-04 22:46</div>
+                    <div class="timeline-content">工单已创建，系统自动派发</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-time">2026-09-05 00:07</div>
+                    <div class="timeline-content">工程师 [张工] 已接单，预约 2026-09-05 AM2</div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-dot pending"></div>
+                    <div class="timeline-time">待更新</div>
+                    <div class="timeline-content pending">工程师上门处理中</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 工程师排期 ===== -->
+      <dc-artboard id="schedule" label="工程师排期" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">工程师排期</div>
+            </div>
+            <div class="schedule-selector">
+              <span class="schedule-selector-label">工程师</span>
+              <span class="schedule-selector-value">张工
+                <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </div>
+            <div class="page-tabs">
+              <div class="page-tab active">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                周排期
+              </div>
+              <div class="page-tab">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                工单列表
+              </div>
+            </div>
+            <div class="page-content" style="padding-bottom:20px;">
+              <div class="calendar-wrap">
+                <div class="calendar-nav">
+                  <div class="calendar-nav-btn"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+                  <div class="calendar-nav-title">2026/09/06 - 2026/09/12</div>
+                  <div class="calendar-nav-btn"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+                </div>
+                <div class="calendar-grid">
+                  <div></div>
+                  <div class="calendar-day-header">周一<div class="date">09/06</div></div>
+                  <div class="calendar-day-header">周二<div class="date">09/07</div></div>
+                  <div class="calendar-day-header today">周三<div class="date">09/08</div></div>
+                  <div class="calendar-day-header">周四<div class="date">09/09</div></div>
+                  <div class="calendar-day-header">周五<div class="date">09/10</div></div>
+                  <div class="calendar-day-header">周六<div class="date">09/11</div></div>
+                  <div class="calendar-day-header">周日<div class="date">09/12</div></div>
+
+                  <div class="calendar-time-label">上午(早)<br>08:30-10:00</div>
+                  <div class="calendar-cell busy">已约</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div>
+
+                  <div class="calendar-time-label">上午<br>10:00-11:30</div>
+                  <div class="calendar-cell busy">已约</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div>
+
+                  <div class="calendar-time-label">下午(早)<br>13:30-15:00</div>
+                  <div class="calendar-cell">空闲</div><div class="calendar-cell busy">已约</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div>
+
+                  <div class="calendar-time-label">下午<br>15:00-16:30</div>
+                  <div class="calendar-cell">空闲</div><div class="calendar-cell busy">已约</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div>
+
+                  <div class="calendar-time-label">下午(晚)<br>16:30-18:00</div>
+                  <div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div><div class="calendar-cell">空闲</div>
+                </div>
+              </div>
+
+              <div style="margin:0 16px 12px;">
+                <button class="primary-btn" style="height:44px;font-size:15px;">
+                  <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  添加排期
+                </button>
+              </div>
+
+              <div class="schedule-list-title">已有排期</div>
+              <div class="schedule-item">
+                <div class="schedule-item-time">
+                  <div class="schedule-item-date">2026-09-05</div>
+                  <div class="schedule-item-slot">上午(晚) 10:00-11:50</div>
+                </div>
+                <div class="schedule-item-customer">曲江金控</div>
+                <div class="schedule-item-delete"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+              </div>
+              <div class="schedule-item">
+                <div class="schedule-item-time">
+                  <div class="schedule-item-date">2026-09-04</div>
+                  <div class="schedule-item-slot">下午(中) 15:00-16:30</div>
+                </div>
+                <div class="schedule-item-customer">大数据服务中心</div>
+                <div class="schedule-item-delete"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+              </div>
+              <div class="schedule-item">
+                <div class="schedule-item-time">
+                  <div class="schedule-item-date">2026-09-04</div>
+                  <div class="schedule-item-slot">上午(晚) 10:00-11:50</div>
+                </div>
+                <div class="schedule-item-customer">陕西省政府</div>
+                <div class="schedule-item-delete"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 投诉建议 ===== -->
+      <dc-artboard id="complaint" label="投诉建议" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">投诉建议</div>
+            </div>
+            <div class="page-tabs">
+              <div class="page-tab active">
+                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                一键投诉
+              </div>
+              <div class="page-tab">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                我的投诉
+              </div>
+            </div>
+            <div class="page-content">
+              <div class="form-card">
+                <div class="form-card-title">
+                  <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  提交投诉建议
+                </div>
+                <div class="form-card-desc">如对我们的服务有任何意见或建议，请在此反馈</div>
+
+                <div class="form-row">
+                  <div class="form-row-label">投诉类型</div>
+                  <div class="form-row-input placeholder">请选择投诉类型
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label"><span class="required">*</span>投诉标题</div>
+                  <div class="form-row-input placeholder">简要描述您的问题</div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label"><span class="required">*</span>详细内容</div>
+                  <div class="form-row-textarea">
+                    请详细描述您遇到的问题或建议...
+                    <span class="count">0/500</span>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-row-label">联系方式（选填）</div>
+                  <div class="form-row-input placeholder">手机号或邮箱，方便我们回复</div>
+                </div>
+              </div>
+            </div>
+            <div class="bottom-bar">
+              <button class="primary-btn">
+                <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                提交投诉
+              </button>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 联系我们 ===== -->
+      <dc-artboard id="contact" label="联系我们" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar" style="background:transparent;position:absolute;top:0;left:0;right:0;z-index:10;">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">联系我们</div>
+            </div>
+            <div class="page-content" style="padding-bottom:20px;">
+              <div class="company-hero">
+                <div class="company-logo"><span>鸿</span></div>
+                <div class="company-name">西安鸿瑞办公</div>
+                <div class="company-slogan">鸿瑞科技 — 智慧安防解决方案提供商</div>
+              </div>
+
+              <div class="company-info-card">
+                <div class="company-info-item">
+                  <div class="company-info-icon blue">
+                    <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  </div>
+                  <div class="company-info-text">
+                    <div class="company-info-label">服务热线</div>
+                    <div class="company-info-value">029-85550780</div>
+                  </div>
+                </div>
+                <div class="company-info-item">
+                  <div class="company-info-icon green">
+                    <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  </div>
+                  <div class="company-info-text">
+                    <div class="company-info-label">公司地址</div>
+                    <div class="company-info-value">西安碑林区雁塔中路19号鹏博大厦A座1001室</div>
+                  </div>
+                </div>
+                <div class="company-info-item">
+                  <div class="company-info-icon orange">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  </div>
+                  <div class="company-info-text">
+                    <div class="company-info-label">营业时间</div>
+                    <div class="company-info-value">周一至周五 8:30-18:00</div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="nav-btn">
+                <svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+                导航到公司
+              </button>
+
+              <div class="engineer-section-title">
+                <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                工程师团队
+                <span class="engineer-section-desc">专业认证 · 经验丰富 · 快速响应</span>
+              </div>
+
+              <div class="engineer-card">
+                <div class="engineer-avatar" style="background:linear-gradient(135deg,#165DFF,#4080FF);">张</div>
+                <div class="engineer-info">
+                  <div class="engineer-name">张工</div>
+                  <div class="engineer-skills">门禁维修 · 网络调试 · 电脑维护</div>
+                </div>
+                <div class="engineer-contact-btn">
+                  <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  联系
+                </div>
+              </div>
+
+              <div class="engineer-card">
+                <div class="engineer-avatar" style="background:linear-gradient(135deg,#722ED1,#9254DE);">李</div>
+                <div class="engineer-info">
+                  <div class="engineer-name">李工</div>
+                  <div class="engineer-skills">车牌识别 · 照明维修 · 监控系统</div>
+                </div>
+                <div class="engineer-contact-btn">
+                  <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  联系
+                </div>
+              </div>
+
+              <div class="engineer-card">
+                <div class="engineer-avatar" style="background:linear-gradient(135deg,#00B42A,#23C343);">王</div>
+                <div class="engineer-info">
+                  <div class="engineer-name">王工</div>
+                  <div class="engineer-skills">门禁识别 · 软件调试 · 网络布线</div>
+                </div>
+                <div class="engineer-contact-btn">
+                  <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                  联系
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+    </dc-section>
+  </design-canvas>
+</div>
+
+</body>
+</html>

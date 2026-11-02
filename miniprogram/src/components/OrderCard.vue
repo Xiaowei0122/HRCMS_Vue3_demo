@@ -1,10 +1,10 @@
-<!--  工单卡片组件 v2 — 企业级设计  -->
+<!--  工单卡片组件 v3 — 蓝色主题 / rpx 移动适配  -->
 <template>
   <view class="order-card" @click="$emit('click', order)">
     <!-- 头部：工程师 + 日期 -->
     <view class="card-head">
       <view class="card-engineer" v-if="order.engineer">
-        <SvgIcon name="hardHat" :size="16" color="#64748B" />
+        <SvgIcon name="hardHat" :size="28" color="#86909C" />
         <text class="eng-name">{{ order.engineer }}</text>
       </view>
       <view v-else />
@@ -28,7 +28,7 @@
           {{ order.priority || '普通' }}
         </view>
       </view>
-      <SvgIcon name="caretRight" :size="16" color="#0369A1" />
+      <SvgIcon name="caretRight" :size="28" color="#165DFF" />
     </view>
   </view>
 </template>
@@ -51,62 +51,63 @@ const formatDate = (t) => {
 <style lang="scss" scoped>
 .order-card {
   background: #fff;
-  border-radius: 14px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(2,6,23,0.05);
+  border-radius: 32rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.04);
   transition: all 0.25s ease;
-  border: 1px solid #F1F5F9;
 
   &:active {
     transform: scale(0.985);
-    box-shadow: 0 4px 12px rgba(2,6,23,0.08);
+    box-shadow: 0 8rpx 32rpx rgba(22, 93, 255, 0.08);
   }
 }
 
 .card-head {
   display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12rpx;
 }
-.card-engineer { display: flex; align-items: center; gap: 4px; }
-.eng-name { font-size: 13px; color: #334155; font-weight: 500; }
-.date-text { font-size: 11px; color: #94A3B8; }
+.card-engineer { display: flex; align-items: center; gap: 8rpx; }
+.eng-name { font-size: 24rpx; color: #4E5969; font-weight: 500; }
+.date-text { font-size: 22rpx; color: #86909C; }
 
 .card-company {
-  font-size: 15px; font-weight: 700; color: #020617;
-  display: block; margin-bottom: 4px;
+  font-size: 30rpx; font-weight: 700; color: #1D2129;
+  display: block; margin-bottom: 8rpx;
 }
 .card-desc {
-  font-size: 13px; color: #64748B; line-height: 1.5;
+  font-size: 26rpx; color: #4E5969; line-height: 1.5;
 }
 
 .card-foot {
   display: flex; justify-content: space-between; align-items: center;
-  margin-top: 10px; padding-top: 10px;
-  border-top: 1px solid #F1F5F9;
+  margin-top: 16rpx; padding-top: 16rpx;
+  border-top: 1rpx solid #F2F3F5;
 }
-.foot-left { display: flex; gap: 6px; }
+.foot-left { display: flex; gap: 12rpx; }
 
 .status-badge {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 11px; padding: 3px 10px; border-radius: 10px; font-weight: 600;
+  display: flex; align-items: center; gap: 8rpx;
+  font-size: 22rpx; padding: 6rpx 20rpx; border-radius: 20rpx; font-weight: 600;
 
-  &.badge-pending    { background: #FEF3C7; color: #92400E; }
-  &.badge-processing { background: #E0F2FE; color: #075985; }
-  &.badge-done       { background: #DCFCE7; color: #166534; }
+  &.badge-pending    { background: #FFF3E8; color: #FF7D00; }
+  &.badge-reserved   { background: #FFF3E8; color: #FF7D00; }
+  &.badge-processing { background: #E8F3FF; color: #165DFF; }
+  &.badge-done       { background: #E8FFEA; color: #00B42A; }
 }
 .status-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  &.dot-pending    { background: #D97706; }
-  &.dot-processing { background: #0369A1; }
-  &.dot-done       { background: #16A34A; }
+  width: 10rpx; height: 10rpx; border-radius: 50%;
+  &.dot-pending    { background: #FF7D00; }
+  &.dot-reserved   { background: #FF7D00; }
+  &.dot-processing { background: #165DFF; }
+  &.dot-done       { background: #00B42A; }
 }
 
 .urgency-badge {
-  font-size: 11px; padding: 3px 10px; border-radius: 4px; font-weight: 600;
+  font-size: 22rpx; padding: 6rpx 16rpx; border-radius: 8rpx; font-weight: 600;
 
-  &.urgency-urgent { background: #FEE2E2; color: #991B1B; }
-  &.urgency-normal { background: #FEF3C7; color: #92400E; }
-  &.urgency-low    { background: #DCFCE7; color: #166534; }
+  &.urgency-urgent { background: #FFECE8; color: #F53F3F; }
+  &.urgency-normal { background: #FFF3E8; color: #FF7D00; }
+  &.urgency-low    { background: #E8FFEA; color: #00B42A; }
 }
 </style>

@@ -49,7 +49,7 @@
 
         <el-table-column prop="createTime" label="投诉时间" width="170" />
         <el-table-column prop="customer" label="投诉客户" width="160" show-overflow-tooltip />
-        <el-table-column prop="target" label="被投诉工程师" width="140">
+        <el-table-column prop="target" label="投诉类别" width="140">
           <template #default="{ row }">
             <el-tag type="danger" effect="light" size="small">{{ row.target }}</el-tag>
           </template>

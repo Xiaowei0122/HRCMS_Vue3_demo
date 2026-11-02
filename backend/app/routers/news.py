@@ -4,10 +4,11 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user, require_permission
 from app.core.response import success, error, paginate
+from app.services.recycle import soft_delete
 
-router = APIRouter(prefix="/news", tags=["新闻管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
+router = APIRouter(prefix="/news", tags=["新闻管理"], dependencies=[Depends(require_permission("news"))])
 
 
 @router.get("")
@@ -84,8 +85,10 @@ async def delete_news(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    await db.news.delete_one({"_id": ObjectId(news_id)})
-    return success(None, "新闻已删除")
+    ok = await soft_delete(db, "news", news_id, user.get("realName") or user.get("username", ""))
+    if not ok:
+        return error(404, "新闻不存在")
+    return success(None, "新闻已移入回收站")
 
 
 @router.patch("/{news_id}/pin")

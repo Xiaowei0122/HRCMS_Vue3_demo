@@ -2,15 +2,16 @@
 import io
 from datetime import datetime, timezone
 from bson import ObjectId
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorDatabase
 import openpyxl
 
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user, require_permission
 from app.core.response import success, error, paginate
+from app.services.recycle import soft_delete
 
-router = APIRouter(prefix="/products", tags=["产品管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
+router = APIRouter(prefix="/products", tags=["产品管理"], dependencies=[Depends(require_permission("products"))])
 
 
 @router.get("")
@@ -108,8 +109,60 @@ async def delete_product(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    await db.products.delete_one({"_id": ObjectId(product_id)})
-    return success(None, "产品已删除")
+    ok = await soft_delete(db, "products", product_id, user.get("realName") or user.get("username", ""))
+    if not ok:
+        return error(404, "产品不存在")
+    return success(None, "产品已移入回收站")
+
+
+@router.post("/import")
+async def import_products(
+    file: UploadFile = File(...),
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    user: dict = Depends(get_current_user),
+):
+    """批量导入产品（Excel 首行为表头：名称/价格/识别速度/功能/库存/分类）"""
+    try:
+        content = await file.read()
+        wb = openpyxl.load_workbook(io.BytesIO(content), data_only=True)
+        ws = wb.active
+    except Exception:
+        return error(400, "无法解析 Excel 文件，请使用导出模板")
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        return error(400, "Excel 内容为空")
+    header = [str(c).strip() if c is not None else "" for c in rows[0]]
+    # 兼容表头顺序：按列名定位
+    idx = {name: i for i, name in enumerate(header)}
+    if "名称" not in idx:
+        return error(400, "缺少「名称」列，请使用导出模板")
+
+    now = datetime.now(timezone.utc)
+    inserted = 0
+    skipped = 0
+    for row in rows[1:]:
+        def cell(col):
+            i = idx.get(col)
+            return row[i] if i is not None and i < len(row) else None
+        name = cell("名称")
+        if name is None or not str(name).strip():
+            skipped += 1
+            continue
+        doc = {
+            "name": str(name).strip(),
+            "price": cell("价格") or 0,
+            "speed": str(cell("识别速度") or "") if cell("识别速度") is not None else "",
+            "function": str(cell("功能") or "") if cell("功能") is not None else "",
+            "stock": cell("库存") or 0,
+            "category": str(cell("分类") or "color"),
+            "img": "",
+            "techSpecs": [],
+            "createdAt": now,
+            "updatedAt": now,
+        }
+        await db.products.insert_one(doc)
+        inserted += 1
+    return success({"inserted": inserted, "skipped": skipped}, f"导入完成：新增 {inserted} 条，跳过 {skipped} 条")
 
 
 def _format_product(p: dict) -> dict:

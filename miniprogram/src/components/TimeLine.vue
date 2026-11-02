@@ -1,4 +1,4 @@
-<!--  时间轴组件 v2 — 企业级设计  -->
+<!--  时间轴组件 v3 — 蓝色主题 / rpx  -->
 <template>
   <view class="timeline">
     <view
@@ -11,7 +11,7 @@
     >
       <view class="tl-line-col">
         <view class="tl-dot" :class="dotClass(index)">
-          <SvgIcon v-if="index < currentActive" name="check" :size="10" color="#fff" />
+          <SvgIcon v-if="index < currentActive" name="check" :size="18" color="#fff" />
         </view>
         <view
           v-if="index < items.length - 1"
@@ -59,56 +59,56 @@ const formatTime = (t) => {
 </script>
 
 <style lang="scss" scoped>
-.timeline { padding: 4px 0; }
+.timeline { padding: 4rpx 0; }
 
-.tl-node { display: flex; min-height: 40px; }
+.tl-node { display: flex; min-height: 64rpx; }
 
 .tl-line-col {
-  width: 24px; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+  width: 40rpx; display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
 }
 
 .tl-dot {
-  width: 16px; height: 16px; border-radius: 50%;
+  width: 28rpx; height: 28rpx; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.3s ease; z-index: 1;
 
   &.dot-done {
-    background: #16A34A;
-    box-shadow: 0 0 0 3px rgba(22,163,74,0.15);
+    background: #00B42A;
+    box-shadow: 0 0 0 6rpx rgba(0,180,42,0.15);
   }
   &.dot-active {
-    background: #0F172A;
-    box-shadow: 0 0 0 3px rgba(15,23,42,0.15);
+    background: #165DFF;
+    box-shadow: 0 0 0 6rpx rgba(22,93,255,0.15);
     animation: dot-pulse 2s infinite;
   }
-  &.dot-waiting { background: #CBD5E1; }
+  &.dot-waiting { background: #C9CDD4; }
 }
 
 .tl-line {
-  width: 2px; flex: 1; min-height: 24px;
-  background: #E2E8F0; transition: background 0.5s ease;
+  width: 2rpx; flex: 1; min-height: 40rpx;
+  background: #E5E6EB; transition: background 0.5s ease;
 
-  &.line-done { background: #16A34A; }
+  &.line-done { background: #00B42A; }
 }
 
 .tl-content {
-  flex: 1; padding-left: 14px; padding-bottom: 18px;
+  flex: 1; padding-left: 24rpx; padding-bottom: 28rpx;
   animation: fade-in-left 0.35s ease;
 }
 
-.tl-time { font-size: 11px; color: #94A3B8; display: block; margin-bottom: 2px; }
-.tl-text { font-size: 13px; color: #334155; font-weight: 500; display: block; }
-.tl-desc { font-size: 12px; color: #64748B; margin-top: 2px; display: block; }
+.tl-time { font-size: 22rpx; color: #86909C; display: block; margin-bottom: 4rpx; }
+.tl-text { font-size: 26rpx; color: #4E5969; font-weight: 500; display: block; }
+.tl-desc { font-size: 24rpx; color: #86909C; margin-top: 4rpx; display: block; }
 
-.tl-empty { text-align: center; padding: 20px 0; }
-.empty-text { font-size: 13px; color: #CBD5E1; }
+.tl-empty { text-align: center; padding: 40rpx 0; }
+.empty-text { font-size: 26rpx; color: #C9CDD4; }
 
 @keyframes dot-pulse {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(15,23,42,0.15); }
-  50%      { box-shadow: 0 0 0 8px rgba(15,23,42,0.06); }
+  0%, 100% { box-shadow: 0 0 0 6rpx rgba(22,93,255,0.15); }
+  50%      { box-shadow: 0 0 0 16rpx rgba(22,93,255,0.06); }
 }
 @keyframes fade-in-left {
-  from { opacity: 0; transform: translateX(-10px); }
+  from { opacity: 0; transform: translateX(-20rpx); }
   to   { opacity: 1; transform: translateX(0); }
 }
 </style>

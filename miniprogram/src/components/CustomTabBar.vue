@@ -1,4 +1,4 @@
-<!--  自定义 TabBar — 按角色动态切换  -->
+<!--  自定义 TabBar — 2 栏（首页 + 我的）  -->
 <template>
   <view class="custom-tabbar safe-area-bottom">
     <view
@@ -8,54 +8,25 @@
       :class="{ active: currentPath === item.path }"
       @click="switchTab(item.path)"
     >
-      <SvgIcon :name="item.icon" :size="22" />
+      <SvgIcon :name="item.icon" :size="24" />
       <text class="tabbar-text">{{ item.text }}</text>
-      <view v-if="item.badge" class="tabbar-badge">{{ item.badge }}</view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
 import SvgIcon from './SvgIcon.vue'
 
 const router = useRouter()
 const route = useRoute()
-const authStore = useAuthStore()
 const currentPath = ref(route.path)
 
-const isEng = computed(() => authStore.isEngineer)
-const canSeeSchedule = computed(() => authStore.isInternalUser || authStore.isAdmin)
-
-const tabList = computed(() => {
-  const homeTab = { path: '/pages/public/home/index', icon: 'house', text: '首页' }
-
-  // 工程师角色
-  if (isEng.value) {
-    return [
-      homeTab,
-      { path: '/pages/engineer/all-orders/index', icon: 'package',  text: '工单池' },
-      { path: '/pages/engineer/my-orders/index',  icon: 'clipboard', text: '我的' },
-      { path: '/pages/complaint/index',            icon: 'envelope', text: '投诉' },
-    ]
-  }
-
-  // 普通用户 / 内部员工
-  const tabs = [
-    homeTab,
-    { path: '/pages/repair-apply/index', icon: 'wrench',    text: '报修' },
-    { path: '/pages/my-repairs/index',   icon: 'clipboard', text: '工单' },
-  ]
-  if (canSeeSchedule.value) {
-    tabs.push({ path: '/pages/schedule/index', icon: 'calendar', text: '排期' })
-  }
-  tabs.push(
-    { path: '/pages/complaint/index', icon: 'envelope', text: '投诉' },
-  )
-  return tabs
-})
+const tabList = [
+  { path: '/pages/public/home/index', icon: 'house', text: '首页' },
+  { path: '/pages/public/profile/index', icon: 'user', text: '我的' },
+]
 
 const switchTab = (path) => {
   if (currentPath.value === path) return
@@ -69,13 +40,14 @@ watch(() => route.path, (p) => { currentPath.value = p })
 .custom-tabbar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
+  height: 128rpx;
   display: flex;
-  background: #FFFFFF;
-  border-top: 1px solid #F1F5F9;
+  align-items: flex-start;
+  padding-top: 12rpx;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1rpx solid #E5E6EB;
   z-index: 999;
-  height: 100rpx;
-  padding-bottom: env(safe-area-inset-bottom);
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.04);
 }
 
 .tabbar-item {
@@ -83,39 +55,19 @@ watch(() => route.path, (p) => { currentPath.value = p })
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  position: relative;
-  gap: 2rpx;
+  gap: 6rpx;
+  color: #86909C;
   transition: all 0.2s ease;
-  color: #94A3B8;
 
   &.active {
-    color: #0F172A;
+    color: #165DFF;
     .tabbar-text { font-weight: 600; }
   }
 
-  &:active {
-    transform: scale(0.92);
-  }
+  &:active { transform: scale(0.92); }
 }
 
 .tabbar-text {
-  font-size: 20rpx;
-}
-
-.tabbar-badge {
-  position: absolute;
-  top: 6rpx;
-  right: 50%;
-  transform: translateX(180%);
-  min-width: 28rpx; height: 28rpx;
-  line-height: 28rpx;
-  background: #DC2626;
-  color: #fff;
-  font-size: 18rpx;
-  border-radius: 50%;
-  text-align: center;
-  padding: 0 4rpx;
-  font-weight: 600;
+  font-size: 22rpx;
 }
 </style>

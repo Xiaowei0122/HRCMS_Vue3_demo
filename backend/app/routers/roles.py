@@ -3,11 +3,11 @@ from bson import ObjectId
 from fastapi import APIRouter, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user, require_permission
 from app.core.response import success, error
 from app.models.role import RoleCreate, RoleUpdate, PermSaveIn
 
-router = APIRouter(tags=["角色管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
+router = APIRouter(tags=["角色管理"], dependencies=[Depends(require_permission("system:roles"))])
 
 
 @router.get("/roles")
@@ -22,6 +22,8 @@ async def get_role_list(
             "id": str(r["_id"]),
             "roleName": r["roleName"],
             "code": r["code"],
+            "rank": r.get("rank", 2),
+            "builtin": r.get("builtin", False),
             "permissions": r.get("permissionIds", []),
         })
     return success(records)
@@ -36,7 +38,9 @@ async def create_role(
     exists = await db.roles.find_one({"code": body.code})
     if exists:
         return error(400, f"角色标识 [{body.code}] 已存在")
-    doc = {"roleName": body.roleName, "code": body.code, "permissionIds": []}
+    if body.rank in (0, 1):
+        return error(403, "超级管理员与管理员为内置角色，不可新增")
+    doc = {"roleName": body.roleName, "code": body.code, "rank": body.rank, "builtin": False, "permissionIds": []}
     await db.roles.insert_one(doc)
     return success(None, "角色创建成功")
 
@@ -48,9 +52,21 @@ async def update_role(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
+    role = await db.roles.find_one({"_id": ObjectId(role_id)})
+    if not role:
+        return error(404, "角色不存在")
     update_data = {k: v for k, v in body.model_dump().items() if v is not None}
     if not update_data:
         return error(400, "没有需要更新的字段")
+    # 内置角色 code 不可改
+    if role.get("builtin") and "code" in update_data and update_data["code"] != role["code"]:
+        return error(403, "内置角色的标识不可修改")
+    # 超级管理员不可降级，防止失去管理权限
+    if role.get("code") == "super_admin" and "rank" in update_data and update_data["rank"] != 0:
+        return error(403, "超级管理员的层级不可修改")
+    # 非内置角色不可提升为超级管理员/管理员（0/1 为内置层级）
+    if "rank" in update_data and update_data["rank"] in (0, 1) and not role.get("builtin"):
+        return error(403, "超级管理员与管理员为内置层级，不可分配")
     await db.roles.update_one({"_id": ObjectId(role_id)}, {"$set": update_data})
     return success(None, "角色已更新")
 
@@ -61,6 +77,11 @@ async def delete_role(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
+    role = await db.roles.find_one({"_id": ObjectId(role_id)})
+    if not role:
+        return error(404, "角色不存在")
+    if role.get("builtin"):
+        return error(403, "内置角色不可删除")
     await db.roles.delete_one({"_id": ObjectId(role_id)})
     return success(None, "角色已删除")
 
@@ -84,9 +105,22 @@ async def save_role_permissions(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
+    role = await db.roles.find_one({"_id": ObjectId(role_id)})
+    if not role:
+        return error(404, "角色不存在")
+    if role.get("code") == "super_admin" or role.get("rank") == 0:
+        return error(403, "超级管理员的权限不可修改，防止误操作导致无法登录后台")
+
+    # 后端兜底：过滤父分组 id（仅树分组，不直接授权），只存叶子权限
+    parent_ids = set()
+    cursor = db.permissions.find({"children": {"$exists": True}})
+    async for p in cursor:
+        if p.get("children"):
+            parent_ids.add(p["_id"])
+    leaf_ids = [pid for pid in body.permissionIds if pid not in parent_ids]
     await db.roles.update_one(
         {"_id": ObjectId(role_id)},
-        {"$set": {"permissionIds": body.permissionIds}},
+        {"$set": {"permissionIds": leaf_ids}},
     )
     return success(None, "权限保存成功")
 

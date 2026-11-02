@@ -4,14 +4,15 @@ import uuid
 from fastapi import APIRouter, Depends, UploadFile, File, Form
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user
 from app.core.response import success, error
 from app.core.config import settings
+from app.services import storage
 
-router = APIRouter(prefix="/upload", tags=["文件上传"], dependencies=[Depends(require_user_types("admin", "internal"))])
+router = APIRouter(prefix="/upload", tags=["文件上传"])
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".pdf", ".xlsx", ".xls", ".docx", ".doc"}
-ALLOWED_CATEGORIES = {"products", "news", "honors", "banners", "avatars", "logos"}
+ALLOWED_CATEGORIES = {"products", "news", "honors", "banners", "avatars", "logos", "vehicles", "knowledge", "cases", "repairs"}
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 
 
@@ -36,13 +37,8 @@ async def upload_file(
     if len(content) > MAX_FILE_SIZE:
         return error(400, f"文件大小不能超过 {MAX_FILE_SIZE // 1024 // 1024}MB")
 
-    # 保存文件
+    # 保存文件（SeaweedFS 为主，本地磁盘兜底）
     filename = f"{uuid.uuid4().hex}{ext}"
-    save_dir = os.path.join(settings.upload_dir, category)
-    os.makedirs(save_dir, exist_ok=True)
-    filepath = os.path.join(save_dir, filename)
-    with open(filepath, "wb") as f:
-        f.write(content)
+    url = storage.save(category, filename, content)
 
-    url = f"/uploads/{category}/{filename}"
     return success({"url": url, "filename": filename}, "上传成功")

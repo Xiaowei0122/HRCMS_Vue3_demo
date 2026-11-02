@@ -7,7 +7,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 const routes = [
   {
     path: '/',
-    redirect: '/pages/public/login/index'
+    redirect: '/pages/public/home/index'
   },
   // ── 公共页面 ──
   {
@@ -26,7 +26,13 @@ const routes = [
     path: '/pages/public/home/index',
     name: 'Home',
     component: () => import('@/pages/public/home/index.vue'),
-    meta: { title: '鸿瑞售后服务中心' }
+    meta: { title: '首页', noAuth: true }
+  },
+  {
+    path: '/pages/public/profile/index',
+    name: 'Profile',
+    component: () => import('@/pages/public/profile/index.vue'),
+    meta: { title: '个人中心', noAuth: true }
   },
   // ── 报修 ──
   {
@@ -68,6 +74,52 @@ const routes = [
     component: () => import('@/pages/contact/index.vue'),
     meta: { title: '联系我们' }
   },
+  // ── 消息通知 ──
+  {
+    path: '/pages/notifications/index',
+    name: 'Notifications',
+    component: () => import('@/pages/notifications/index.vue'),
+    meta: { title: '消息通知' }
+  },
+  // ── 私信 ──
+  {
+    path: '/pages/messages/index',
+    name: 'Messages',
+    component: () => import('@/pages/messages/index.vue'),
+    meta: { title: '私信' }
+  },
+  {
+    path: '/pages/chat/index',
+    name: 'Chat',
+    component: () => import('@/pages/chat/index.vue'),
+    meta: { title: '聊天' }
+  },
+  // ── 地址管理 ──
+  {
+    path: '/pages/address/index',
+    name: 'Address',
+    component: () => import('@/pages/address/index.vue'),
+    meta: { title: '地址管理' }
+  },
+  {
+    path: '/pages/address-edit/index',
+    name: 'AddressEdit',
+    component: () => import('@/pages/address-edit/index.vue'),
+    meta: { title: '编辑地址' }
+  },
+  // ── 技术知识库 ──
+  {
+    path: '/pages/knowledge/index',
+    name: 'Knowledge',
+    component: () => import('@/pages/knowledge/index.vue'),
+    meta: { title: '技术知识库', noAuth: true }
+  },
+  {
+    path: '/pages/knowledge-detail/index',
+    name: 'KnowledgeDetail',
+    component: () => import('@/pages/knowledge-detail/index.vue'),
+    meta: { title: '知识详情', noAuth: true }
+  },
   // ── 工程师 ──
   {
     path: '/pages/engineer/all-orders/index',
@@ -91,34 +143,34 @@ const router = createRouter({
   }
 })
 
-// 路由守卫 — 登录检查 + 角色权限
+// 路由守卫 — 登录检查 + 权限校验（权限码与后端 require_permission 对齐）
 router.beforeEach((to, _from, next) => {
   document.title = to.meta.title || '鸿瑞售后报修'
   if (to.meta.noAuth) {
     return next()
   }
   const token = uni.getStorageSync('token')
-  if (!token && to.path !== '/pages/public/login/index') {
+  if (!token) {
     return next('/pages/public/login/index')
   }
 
-  // 角色权限校验
-  const userInfo = uni.getStorageSync('userInfo')
-  const userType = userInfo?.userType || 'normal'
+  const userInfo = uni.getStorageSync('userInfo') || {}
+  const roleCode = userInfo.roleCode || userInfo.userType || 'normal'
+  const perms = roleCode === 'super_admin' ? ['*'] : (userInfo.permissions || [])
+  const hasPerm = (...codes) => perms.includes('*') || codes.some((c) => perms.includes(c))
 
-  // 所有工单页 — 仅工程师
-  if (to.path === '/pages/engineer/all-orders/index' && userType !== 'engineer' && userType !== 'admin') {
+  // 页面 → 所需权限码（任一命中即放行；未列出页面对所有登录用户开放）
+  const required = {
+    '/pages/repair-apply/index': ['repair:create'],
+    '/pages/my-repairs/index': ['repair:my'],
+    '/pages/repair-detail/index': ['repair:my', 'repair:all', 'repair:audit'],
+    '/pages/schedule/index': ['repair:schedule', 'repair:audit'],
+    '/pages/engineer/all-orders/index': ['repair:all'],
+    '/pages/engineer/my-orders/index': ['repair:all'],
+  }[to.path]
+
+  if (required && !hasPerm(...required)) {
     return next('/pages/public/home/index')
-  }
-  // 我的工单页(工程师版) — 仅工程师
-  if (to.path === '/pages/engineer/my-orders/index' && userType !== 'engineer' && userType !== 'admin') {
-    return next('/pages/my-repairs/index')
-  }
-  // 排期页 — 内部员工 + 管理员
-  if (to.path === '/pages/schedule/index') {
-    if (userType !== 'internal' && userType !== 'admin') {
-      return next('/pages/public/home/index')
-    }
   }
 
   next()

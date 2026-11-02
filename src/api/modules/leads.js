@@ -15,6 +15,11 @@ export function updateLeadProgress(id, data) {
   return request.put(`/leads/${id}/progress`, data)
 }
 
+/** POST /leads/:id/convert 一键转工单  { deviceType?, workOrderType?, priority?, description? } */
+export function convertLead(id, data) {
+  return request.post(`/leads/${id}/convert`, data)
+}
+
 /** GET /leads/export (blob) */
 export function exportLeads(params) {
   return request.get('/leads/export', { params, responseType: 'blob' })

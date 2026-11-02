@@ -92,26 +92,32 @@ function previewImage({ urls, current = '' }) {
   if (url) window.open(url, '_blank')
 }
 
-function chooseImage({ count = 1, sourceType = ['album', 'camera'] } = {}) {
+function chooseImage(options = {}) {
+  const { count = 1, sourceType = ['album', 'camera'] } = options
   return new Promise((resolve) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
     input.multiple = count > 1
+    // 仅拍照 → 移动端直接唤起相机（capture=environment）
+    if (sourceType && sourceType.length === 1 && sourceType[0] === 'camera') {
+      input.setAttribute('capture', 'environment')
+    }
     input.style.display = 'none'
     document.body.appendChild(input)
 
     input.addEventListener('change', () => {
       const files = Array.from(input.files || [])
       document.body.removeChild(input)
-      if (files.length > 0) {
-        resolve({
-          tempFilePaths: files.map(f => URL.createObjectURL(f)),
-          tempFiles: files.map(f => ({ path: URL.createObjectURL(f), size: f.size }))
-        })
-      } else {
-        resolve({ tempFilePaths: [], tempFiles: [] })
-      }
+      const result = files.length > 0
+        ? {
+            tempFilePaths: files.map(f => URL.createObjectURL(f)),
+            tempFiles: files.map(f => ({ path: URL.createObjectURL(f), size: f.size }))
+          }
+        : { tempFilePaths: [], tempFiles: [] }
+      // 兼容 success 回调模式（与 request/uploadFile 一致，原实现漏调导致选图无反馈）
+      if (typeof options.success === 'function') options.success(result)
+      resolve(result)
     })
 
     input.click()

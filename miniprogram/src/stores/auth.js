@@ -13,20 +13,44 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoggedIn = ref(false)
 
   // ── getters ──
-  const userType = computed(() => userInfo.value?.userType || 'normal')
+  const userType = computed(() => userInfo.value?.roleCode || userInfo.value?.userType || 'normal')
+  // 权限码列表（与后端 build_user_info.permissions 对齐；super_admin 通配）
+  const permissions = computed(() => {
+    const info = userInfo.value
+    if (!info) return []
+    if (info.roleCode === 'super_admin' || info.userType === 'super_admin') return ['*']
+    return info.permissions || []
+  })
+  // 权限判断（镜像后端 require_permission：任一命中即通过）
+  const hasPerm = (...codes) => {
+    const perms = permissions.value
+    if (perms.includes('*')) return true
+    return codes.some((c) => perms.includes(c))
+  }
+
   const isNormalUser = computed(() => userType.value === 'normal')
-  const isInternalUser = computed(() => userType.value === 'internal')
+  const isBusiness = computed(() => userType.value === 'business')
   const isEngineer = computed(() => userType.value === 'engineer')
-  const isAdmin = computed(() => userType.value === 'admin')
+  const isFinance = computed(() => userType.value === 'finance')
+  const isOperation = computed(() => userType.value === 'operation')
+  const isAdmin = computed(() => userType.value === 'super_admin' || userType.value === 'admin')
+  const isSuperAdmin = computed(() => userType.value === 'super_admin')
+  // 内部员工 = 除外部人员/工程师外的所有角色
+  const isInternalUser = computed(() => !['normal', 'engineer'].includes(userType.value))
+  // 可确认归档/发起返修的角色（客户 + 业务 + 管理员，工程师/财务/运营除外）
+  const canConfirmRepair = computed(() => ['normal', 'business', 'admin', 'super_admin'].includes(userType.value))
   const userName = computed(() => userInfo.value?.realName || userInfo.value?.username || '用户')
 
   // 角色中文标签
   const roleLabel = computed(() => {
     const map = {
-      normal: '外部人员',
-      internal: '内部员工',
+      super_admin: '超级管理员',
+      admin: '管理员',
+      business: '业务',
+      finance: '财务',
+      operation: '运营',
       engineer: '工程师',
-      admin: '管理员'
+      normal: '外部人员'
     }
     return map[userType.value] || '外部人员'
   })
@@ -63,6 +87,34 @@ export const useAuthStore = defineStore('auth', () => {
     return await post('/auth/register', formData)
   }
 
+  // ── 微信一键登录（uni.login → code → 后端换 openid/unionid 自动注册/登录）──
+  const wechatLogin = async (profile = {}) => {
+    const code = await new Promise((resolve, reject) => {
+      uni.login({
+        provider: 'weixin',
+        success: (res) => resolve(res.code || ''),
+        fail: (err) => reject(err)
+      })
+    })
+    if (!code) {
+      throw new Error('获取微信登录凭证失败')
+    }
+    const u = await post('/auth/wechat-login', {
+      code,
+      nickname: profile.nickname || '',
+      avatar: profile.avatar || ''
+    })
+
+    token.value = u.token
+    userInfo.value = u.userInfo
+    isLoggedIn.value = true
+
+    uni.setStorageSync('token', u.token)
+    uni.setStorageSync('userInfo', u.userInfo)
+
+    return u.userInfo
+  }
+
   // ── 退出登录 ──
   const logout = async () => {
     try {
@@ -92,15 +144,23 @@ export const useAuthStore = defineStore('auth', () => {
     userInfo,
     isLoggedIn,
     userType,
+    permissions,
+    hasPerm,
     isNormalUser,
-    isInternalUser,
+    isBusiness,
     isEngineer,
+    isFinance,
+    isOperation,
     isAdmin,
+    isSuperAdmin,
+    isInternalUser,
+    canConfirmRepair,
     userName,
     roleLabel,
     checkLogin,
     login,
     register,
+    wechatLogin,
     logout,
     changePassword
   }

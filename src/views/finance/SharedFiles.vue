@@ -97,11 +97,7 @@
         </el-form-item>
         <el-form-item label="文件分类">
           <el-select v-model="uploadForm.category" style="width: 100%">
-            <el-option label="发票登记" value="invoice" />
-            <el-option label="财务报表" value="report" />
-            <el-option label="制度文件" value="policy" />
-            <el-option label="合同存档" value="contract" />
-            <el-option label="其他" value="other" />
+            <el-option v-for="c in fileCategories" :key="c.value" :label="c.label" :value="c.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="可见范围">
@@ -151,25 +147,32 @@ import {
   Upload, Download, Delete, Setting, Document,
   Lock, View, UploadFilled
 } from '@element-plus/icons-vue'
-import { getUserInfo } from '@/utils/auth'
+import { hasPerm } from '@/utils/permission'
 import {
   getFileList, uploadFile, deleteFile, updateFilePermission
 } from '@/api/modules/finance'
+import { getDictOptions } from '@/api/modules/dict'
 
 // ── 权限判定 ──
-const currentUser = computed(() => getUserInfo() || {})
-const isFinance = computed(() => {
-  const ut = currentUser.value.userType || ''
-  const role = currentUser.value.role || currentUser.value.roleName || ''
-  // 管理员全部权限，内部员工可访问财务
-  if (ut === 'admin' || role === '管理员') return true
-  if (ut === 'internal' || role === '内部员工') return true
-  // 旧版兼容
-  return ['财务', 'admin', 'finance'].some(r => role.includes(r))
-})
+const isFinance = computed(() => hasPerm('finance:files'))
 
 // ── 分类 ──
 const filterCategory = ref('all')
+// 文件分类下拉：优先读数据字典，字典为空时回退内置默认值
+const fileCategories = ref([
+  { label: '发票登记', value: 'invoice' },
+  { label: '财务报表', value: 'report' },
+  { label: '制度文件', value: 'policy' },
+  { label: '合同存档', value: 'contract' },
+  { label: '其他', value: 'other' },
+])
+
+const loadDicts = async () => {
+  try {
+    const cats = await getDictOptions('文件分类')
+    if (Array.isArray(cats) && cats.length) fileCategories.value = cats
+  } catch { /* 字典不可用时沿用内置默认 */ }
+}
 const categoryLabel = (c) => {
   const map = { invoice: '发票登记', report: '财务报表', policy: '制度文件', contract: '合同存档', other: '其他' }
   return map[c] || c
@@ -278,6 +281,7 @@ const handleDeleteFile = async (row) => {
 
 onMounted(() => {
   fetchFiles()
+  loadDicts()
 })
 </script>
 

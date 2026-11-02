@@ -11,6 +11,14 @@
             </el-button-group>
           </div>
           <div class="right-group">
+            <el-upload
+              :show-file-list="false"
+              :http-request="handleImport"
+              accept=".xlsx,.xls"
+              style="display: inline-block; margin-right: 12px"
+            >
+              <el-button type="warning" icon="Upload">批量导入</el-button>
+            </el-upload>
             <el-button type="success" icon="Download" @click="handleExport">导出库存</el-button>
             <el-button type="primary" icon="Plus" @click="openProductModal">新增设备录入</el-button>
           </div>
@@ -44,6 +52,14 @@
           </el-card>
         </el-col>
       </el-row>
+
+      <el-empty
+        v-if="!loading && productList.length === 0"
+        description="暂无设备，可先「新增设备录入」或「批量导入」"
+        :image-size="120"
+      >
+        <el-button type="primary" icon="Plus" @click="openProductModal">新增设备录入</el-button>
+      </el-empty>
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑设备参数' : '设备详细参数录入'" width="800px" append-to-body>
@@ -75,8 +91,7 @@
           <el-col :span="8">
             <el-form-item label="分类">
               <el-select v-model="productForm.category" style="width: 100%">
-                <el-option label="彩色办公" value="color" />
-                <el-option label="高效黑白" value="bw" />
+                <el-option v-for="c in productCategories" :key="c.value" :label="c.label" :value="c.value" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -125,9 +140,10 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus } from '@element-plus/icons-vue'
-import { getProductList, createProduct, updateProduct, deleteProduct, exportProducts } from '@/api/modules/products'
+import { Plus, Upload } from '@element-plus/icons-vue'
+import { getProductList, createProduct, updateProduct, deleteProduct, exportProducts, importProducts } from '@/api/modules/products'
 import { uploadFile } from '@/api/modules/upload'
+import { getDictOptions } from '@/api/modules/dict'
 
 const activeCat = ref('all')
 const dialogVisible = ref(false)
@@ -144,6 +160,19 @@ const productForm = reactive({
 })
 
 const techSpecs = ref([])
+
+// 分类下拉：优先读数据字典，字典为空时回退内置默认值
+const productCategories = ref([
+  { label: '彩色办公', value: 'color' },
+  { label: '高效黑白', value: 'bw' },
+])
+
+const loadDicts = async () => {
+  try {
+    const cats = await getDictOptions('产品分类')
+    if (Array.isArray(cats) && cats.length) productCategories.value = cats
+  } catch { /* 字典不可用时沿用内置默认 */ }
+}
 
 const fetchProducts = async () => {
   loading.value = true
@@ -238,13 +267,36 @@ const handleDelete = (item) => {
   }).catch(() => {})
 }
 
+const handleImport = async ({ file }) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  try {
+    const res = await importProducts(fd)
+    ElMessage.success(`导入完成：新增 ${res?.inserted ?? 0} 条，跳过 ${res?.skipped ?? 0} 条`)
+    fetchProducts()
+  } catch { /* ignore */ }
+}
+
 const handleExport = async () => {
+  // 全部设备时提醒，避免一次性导出所有产品（数据量可能较大）
+  if (activeCat.value === 'all') {
+    try {
+      await ElMessageBox.confirm(
+        '当前为「全部设备」，将一次性导出全部产品（数据量可能较大）。\n建议先选择设备类型再导出。是否仍要导出全部？',
+        '导出提示',
+        { type: 'warning', confirmButtonText: '仍要导出', cancelButtonText: '取消' }
+      )
+    } catch { return }
+  }
   try {
     const response = await exportProducts({ category: activeCat.value === 'all' ? '' : activeCat.value })
+    const catLabel = activeCat.value === 'all'
+      ? '全部设备'
+      : (productCategories.value.find(c => c.value === activeCat.value)?.label || activeCat.value)
     const url = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')
     link.href = url
-    link.download = 'products.xlsx'
+    link.download = `产品库存_${catLabel}.xlsx`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -255,6 +307,7 @@ const handleExport = async () => {
 
 onMounted(() => {
   fetchProducts()
+  loadDicts()
 })
 </script>
 

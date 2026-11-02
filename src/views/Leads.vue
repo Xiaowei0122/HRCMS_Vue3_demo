@@ -21,6 +21,7 @@
               end-placeholder="结束日期"
               size="default"
               style="margin-right: 10px"
+              @change="handleDateFilter"
             />
             <el-button type="primary" icon="Download" @click="handleExport">导出报表</el-button>
           </div>
@@ -39,7 +40,7 @@
         </el-table-column>
         <el-table-column prop="productName" label="意向产品/服务" width="220">
           <template #default="{ row }">
-            <el-tag size="small" type="info" effect="plain">{{ row.category }}</el-tag>
+            <el-tag size="small" type="info" effect="plain">{{ categoryLabel(row.category) }}</el-tag>
             <span style="margin-left: 8px; font-size: 13px;">{{ row.productName }}</span>
           </template>
         </el-table-column>
@@ -52,11 +53,22 @@
           </template>
         </el-table-column>
         <el-table-column prop="createTime" label="提交时间" width="160" sortable />
-        <el-table-column label="操作" width="120" fixed="right" align="center">
+        <el-table-column label="操作" width="200" fixed="right" align="center">
           <template #default="scope">
             <el-button link type="primary" @click="viewDetail(scope.row)" style="font-weight: bold;">
               跟进处理
             </el-button>
+            <el-button
+              v-if="canConvert(scope.row)"
+              link
+              type="success"
+              @click="handleConvert(scope.row)"
+            >
+              转工单
+            </el-button>
+            <el-tag v-else-if="scope.row.convertedOrderNo" size="small" type="success" effect="plain">
+              {{ scope.row.convertedOrderNo }}
+            </el-tag>
           </template>
         </el-table-column>
       </el-table>
@@ -123,8 +135,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { Phone } from '@element-plus/icons-vue'
-import { ElMessage } from 'element-plus'
-import { getLeadList, updateLeadProgress, exportLeads } from '@/api/modules/leads'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getLeadList, updateLeadProgress, exportLeads, convertLead } from '@/api/modules/leads'
 
 const filterStatus = ref('all')
 const dateRange = ref('')
@@ -148,12 +160,45 @@ const getStatusMap = (status) => {
   return map[status] || { label: status || '未知', type: 'info' }
 }
 
+// 意向产品/服务类型：官网提交的英文值映射为中文展示
+const CATEGORY_LABELS = {
+  '': '意向采购咨询',
+  'rent': '设备租赁及销售',
+  'buy': '耗材/办公用品采购',
+  'service': '用户维护报修',
+  'repair': '维修报修',
+  'maintenance': '设备维护',
+  'consulting': '技术咨询',
+  'other': '其他',
+  '维修': '维修报修',
+  '报修': '维修报修',
+  '用户维护报修': '用户维护报修',
+}
+const categoryLabel = (c) => {
+  const cat = (c || '').trim()
+  if (CATEGORY_LABELS[cat] !== undefined) return CATEGORY_LABELS[cat]
+  // 兜底：包含中文则直接返回，否则返回原值
+  return cat || '意向采购咨询'
+}
+
+// 维修类需求：支持一键转工单
+const isRepairCategory = (c) => {
+  const cat = (c || '').trim()
+  return cat === 'service' || cat.includes('维修') || cat.includes('报修')
+}
+const canConvert = (row) => isRepairCategory(row.category) && !row.convertedOrderNo && row.status !== '已成交'
+
 const fetchLeads = async () => {
   loading.value = true
   try {
     const params = { page: query.value.page, size: query.value.size }
     if (filterStatus.value !== 'all') params.status = filterStatus.value
-    // "跟进中"筛选时也查"处理中"状态的数据（后端兼容）
+    // 日期范围筛选
+    if (dateRange.value && Array.isArray(dateRange.value) && dateRange.value.length === 2) {
+      const [start, end] = dateRange.value
+      if (start) params.startDate = formatDate(start)
+      if (end) params.endDate = formatDate(end)
+    }
     const res = await getLeadList(params)
     if (Array.isArray(res)) {
       leadsList.value = res
@@ -166,7 +211,19 @@ const fetchLeads = async () => {
   }
 }
 
+const formatDate = (d) => {
+  if (!d) return ''
+  const date = d instanceof Date ? d : new Date(d)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
 const handleFilterChange = () => {
+  query.value.page = 1
+  fetchLeads()
+}
+
+const handleDateFilter = () => {
   query.value.page = 1
   fetchLeads()
 }
@@ -188,10 +245,31 @@ const saveProgress = async () => {
   } catch { /* ignore */ }
 }
 
+const handleConvert = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认将「${row.name}」的维修类需求转为报修工单？转单后需求标记为已成交。`,
+      '一键转工单',
+      { type: 'warning' }
+    )
+  } catch { return }
+  try {
+    const res = await convertLead(row.id, { description: row.content })
+    ElMessage.success(`已转为工单 ${res.orderNo || ''}`)
+    fetchLeads()
+  } catch { /* ignore */ }
+}
+
 const handleExport = async () => {
   try {
     const params = {}
     if (filterStatus.value !== 'all') params.status = filterStatus.value
+    // 导出同样按当前日期范围筛选（与列表一致）
+    if (dateRange.value && Array.isArray(dateRange.value) && dateRange.value.length === 2) {
+      const [start, end] = dateRange.value
+      if (start) params.startDate = formatDate(start)
+      if (end) params.endDate = formatDate(end)
+    }
     const response = await exportLeads(params)
     const url = window.URL.createObjectURL(new Blob([response.data]))
     const link = document.createElement('a')

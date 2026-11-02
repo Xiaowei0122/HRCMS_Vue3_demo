@@ -8,6 +8,9 @@ const service = axios.create({
   timeout: 15000
 })
 
+// 避免并发请求同时 401 时重复弹窗 / 重复跳转登录
+let isRedirectingToLogin = false
+
 // ===================== 请求拦截器 =====================
 service.interceptors.request.use(
   (config) => {
@@ -40,6 +43,12 @@ service.interceptors.response.use(
       return res.data
     }
 
+    // 数据库连接失败：后端可达但数据库不可用
+    if (res.code === 503) {
+      ElMessage.error('无法连接数据库')
+      return Promise.reject(new Error(res.message || '数据库连接失败'))
+    }
+
     // 业务错误
     ElMessage.error(res.message || '请求失败')
     return Promise.reject(new Error(res.message || 'Error'))
@@ -48,11 +57,20 @@ service.interceptors.response.use(
     const { response } = error
 
     if (response) {
+      // 数据库连接失败：后端可达但数据库不可用
+      if (response.status === 503 || response.data?.code === 503) {
+        ElMessage.error('无法连接数据库')
+        return Promise.reject(error)
+      }
+
       switch (response.status) {
         case 401:
-          ElMessage.error('登录已过期，请重新登录')
-          clearAuth()
-          router.push('/login')
+          if (!isRedirectingToLogin) {
+            isRedirectingToLogin = true
+            ElMessage.error('登录已过期，请重新登录')
+            clearAuth()
+            router.push('/login').finally(() => { isRedirectingToLogin = false })
+          }
           break
         case 403:
           ElMessage.error('没有操作权限')
@@ -71,7 +89,7 @@ service.interceptors.response.use(
     } else if (error.message?.includes('timeout')) {
       ElMessage.error('请求超时，请检查网络连接')
     } else {
-      ElMessage.error('网络异常，请检查网络连接')
+      ElMessage.error('请检查后端服务是否已启动')
     }
 
     return Promise.reject(error)

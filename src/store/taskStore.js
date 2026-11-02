@@ -2,24 +2,23 @@ import { defineStore } from 'pinia'
 import dayjs from 'dayjs'
 import {
   getEngineerList, getEngineerSchedule,
-  createScheduleEntry, deleteScheduleEntry,
+  createScheduleLock, deleteScheduleLock,
   assignRepair, completeRepair as apiCompleteRepair
 } from '@/api/modules/repairs'
 
 export const useTaskStore = defineStore('task', {
   state: () => ({
-    // 工程师列表
-    engineers: [
-      { id: 1, name: '张工', team: '维保一组' },
-      { id: 2, name: '李工', team: '维保二组' },
-      { id: 3, name: '王工', team: '维保一组' }
-    ],
+    // 工程师列表（来自后端 roleCode=engineer 的用户）
+    engineers: [],
 
     // 核心任务池
     allTasks: [],
 
     // 加载状态
-    loading: false
+    loading: false,
+
+    // 服务器时间（YYYY-MM-DD HH:mm:ss，含时分秒），由外部初始化后写入，用于排期过期判断
+    serverDate: ''
   }),
 
   getters: {
@@ -30,18 +29,19 @@ export const useTaskStore = defineStore('task', {
       )
     },
 
-    // 计算格子的视觉状态
+    // 计算格子的视觉状态（优先使用服务器时间，回退客户端时间）
     getCellStatus: (state) => (engName, date, slotId, range) => {
       const task = state.allTasks.find(t =>
         t.engineer === engName && t.date === date && t.timeSlot === slotId
       )
-      const now = dayjs()
+      // 优先使用服务器时间，回退客户端 dayjs()
+      const now = state.serverDate ? dayjs(state.serverDate) : dayjs()
       const [_, endTime] = range.split('-')
       const slotEndTime = dayjs(`${date} ${endTime}`)
 
       if (task) {
-        if (task.status === '已完成') return 'finished'
-        if (task.type === 'break') return 'locked'
+        if (task.status === '已完成' || task.status === '已归档') return 'finished'
+        if (task.status === '已锁定') return 'locked'
         if (now.isAfter(slotEndTime)) return 'overtime'
         return 'occupied'
       }
@@ -101,7 +101,7 @@ export const useTaskStore = defineStore('task', {
      */
     async lockSlot(payload) {
       try {
-        await createScheduleEntry(payload)
+        await createScheduleLock(payload)
         await this.fetchSchedule({ engineerId: payload.engineerId })
       } catch {
         throw new Error('锁定时段失败')
@@ -124,7 +124,7 @@ export const useTaskStore = defineStore('task', {
      */
     async releaseLock(taskId) {
       try {
-        await deleteScheduleEntry(taskId)
+        await deleteScheduleLock(taskId)
         const index = this.allTasks.findIndex(t => t.id === taskId)
         if (index !== -1) {
           this.allTasks.splice(index, 1)

@@ -53,11 +53,13 @@ const request = (url, options = {}) => {
         }
 
         // 后端统一格式 { code: 200, data: ..., message: "ok" }
-        // 自动解包，store 层直接拿业务数据
+        // 自动解包，store 层直接拿业务数据；业务错误统一 Toast + reject
         if (data && data.code === 200) {
           resolve(data.data)
         } else {
-          resolve(data)
+          const msg = (data && data.message) || '请求失败'
+          uni.showToast({ title: msg, icon: 'none', duration: 2000 })
+          reject(new Error(msg))
         }
       },
       fail: (err) => {

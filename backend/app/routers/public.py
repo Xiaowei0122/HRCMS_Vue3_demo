@@ -1,13 +1,24 @@
 """公开接口 — 供官网（HRhomepage_vue3）等公开站点读取，无需登录"""
-from datetime import datetime, timezone
 from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.deps import get_db
 from app.core.response import success, error, paginate
+from app.core.timeutil import now_cn, now_str, today_str
+from app.services import notify
 
 router = APIRouter(prefix="/public", tags=["公开门户"])
+
+
+@router.get("/server-time")
+async def get_server_time():
+    """返回服务器北京时间，供前端对齐报单时间"""
+    return success({
+        "datetime": now_str(),
+        "date": today_str(),
+        "timestamp": int(now_cn().timestamp() * 1000),
+    })
 
 
 # ─── 站点全局配置 ──────────────────────────────────
@@ -42,6 +53,24 @@ async def get_public_config(db: AsyncIOMotorDatabase = Depends(get_db)):
         "services": config.get("services", []),
         "about": config.get("about", {}),
     })
+
+
+@router.get("/engineers")
+async def get_public_engineers(db: AsyncIOMotorDatabase = Depends(get_db)):
+    """免登录：返回展示工程师（showOnMobile=true 的工程师用户），供小程序「联系我们」展示"""
+    cursor = db.users.find({"roleCode": "engineer", "showOnMobile": True})
+    records = []
+    async for u in cursor:
+        records.append({
+            "id": str(u["_id"]),
+            "name": u.get("realName", u.get("username", "")),
+            "phone": u.get("phone", ""),
+            "avatar": u.get("avatar", ""),
+            "skills": u.get("skills", []),
+            "desc": u.get("desc", ""),
+            "team": u.get("team", ""),
+        })
+    return success(records)
 
 
 @router.get("/banners")
@@ -96,6 +125,62 @@ async def get_public_news_detail(
         "content": n.get("content", ""),
         "cover": n.get("cover", ""),
         "views": n.get("views", 0) + 1,
+        "date": n.get("date", ""),
+    })
+
+
+# ─── 技术知识库（小程序专用，独立于新闻中心）──────────
+
+@router.get("/knowledge")
+async def get_public_knowledge(
+    page: int = 1,
+    size: int = 20,
+    type: str = "",
+    pinned: str = "",
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    """免登录：返回已发布的技术知识库文章（置顶优先；pinned=true 仅返回置顶）"""
+    filter_q = {"isPublished": True}
+    if type:
+        filter_q["type"] = type
+    if pinned == "true":
+        filter_q["isPinned"] = True
+    total = await db.knowledge.count_documents(filter_q)
+    cursor = db.knowledge.find(filter_q).skip((page - 1) * size).limit(size).sort([("isPinned", -1), ("_id", -1)])
+    records = []
+    async for n in cursor:
+        records.append({
+            "id": str(n["_id"]),
+            "title": n.get("title", ""),
+            "type": n.get("type", ""),
+            "content": n.get("content", ""),
+            "cover": n.get("cover", ""),
+            "views": n.get("views", 0),
+            "author": n.get("author", ""),
+            "isPinned": n.get("isPinned", False),
+            "date": n.get("date", ""),
+            "summary": _strip_html(n.get("content", ""))[:120],
+        })
+    return success(paginate(records, total, page, size))
+
+
+@router.get("/knowledge/{article_id}")
+async def get_public_knowledge_detail(
+    article_id: str,
+    db: AsyncIOMotorDatabase = Depends(get_db),
+):
+    n = await db.knowledge.find_one({"_id": ObjectId(article_id), "isPublished": True})
+    if not n:
+        return error(404, "文章不存在或已下架")
+    await db.knowledge.update_one({"_id": ObjectId(article_id)}, {"$inc": {"views": 1}})
+    return success({
+        "id": str(n["_id"]),
+        "title": n.get("title", ""),
+        "type": n.get("type", ""),
+        "content": n.get("content", ""),
+        "cover": n.get("cover", ""),
+        "views": n.get("views", 0) + 1,
+        "author": n.get("author", ""),
         "date": n.get("date", ""),
     })
 
@@ -161,6 +246,7 @@ async def get_public_cases(db: AsyncIOMotorDatabase = Depends(get_db)):
             "mode": c.get("mode", ""),
             "summary": c.get("summary", ""),
             "date": c.get("date", ""),
+            "img": c.get("img", ""),
         })
     return success(records)
 
@@ -204,9 +290,17 @@ async def submit_public_lead(
         "content": body.get("content", body.get("message", "")),
         "status": "待跟进",
         "remark": "",
-        "createTime": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "createTime": now_str(),
     }
     result = await db.leads.insert_one(doc)
+    await notify.push_notify(
+        db,
+        type_="lead_new",
+        title="新增需求线索",
+        content=f"{name}（{phone}）提交了线索：{doc.get('category', '')}",
+        link="/leads",
+        role_codes=["super_admin", "admin", "business"],
+    )
     return success({"id": str(result.inserted_id)}, "提交成功，我们会尽快与您联系")
 
 

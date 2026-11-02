@@ -312,6 +312,38 @@ HRCMS_VUE3/
 
 ---
 
-> **最后更新**：2026-08-17
+## Ver 0.9 — 报修售后 7 项需求 · 微信登录 · 归档确认/费用/返修/导出 (2026-08-30)
+
+版本定位：报修工单从「三段状态」升级为完整售后闭环（类型/设备 → 指派 → 完结 → 双向确认归档 → 返修），并引入微信统一身份与 Excel 导出。
+
+---
+
+### 🛠️ 工单模型与状态机升级（`repairs.py`）
+
+- **新增字段**：`workOrderType`（售后上门 / 协助送货）、`deviceType`（电脑/打印机/复印机/投影仪/扫描仪/网络设备/大屏/其他）、`latitude`/`longitude`（地图选点，gcj02）、`fee`（费用对象 `{mode,amount,note,paidBy,setBy,settledAt}`）、返修关联 `reworkOf/isRework/reworkReason/reworkNote/reworkCount/reworkChildNo`、完结/确认信息 `completedBy/completedAt/confirmedBy/confirmedAt/confirmRole`、`archived`。
+- **状态机**：`待接单 → 处理中 → 待确认 → 已归档`；保留历史 `已完成`，统一 `_is_archived(status) = status in ("已完成","已归档")` 处理统计/返修/导出。
+- **双向确认归档**：工程师 `complete` → `待确认`（写入 `completedBy/At`）；客户（`normal`）或业务（`business`）`confirm` → `已归档`（写入 `confirmRole=customer/business`）。工程师不可确认归档。
+
+### 💰 费用 / 返修 / 导出 / 自动填充
+
+- **上门费用**：`PATCH /repairs/{id}/fee` 两种模式 `已协商好(agreed)` / `自行协商(self)`；`create`/`assign` 可选携带费用。
+- **返修单**：`POST /repairs/{id}/rework` 复制原单生成新工单并关联原单号（`isRework=true`/`reworkOf`），原单 `reworkCount` 递增、进度追加；默认允许多次返修。
+- **Excel 导出**：`GET /repairs/export`（openpyxl）按状态/单位/类型/日期范围导出 21 列表头。
+- **二次自动填充**：`GET /repairs/lookup?company=` 按单位名匹配最近一条历史工单返回基础信息，供二次录入自动带出（可改）。
+
+### 🔐 微信登录（统一身份 + 角色分层）
+
+- **身份统一从微信获取**：`POST /auth/wechat-login`（`uni.login`→code→`jscode2session`→openid/unionid），内部员工与外部客户都走微信认证。
+- **角色分层**：`admin/business/engineer/normal` 只是角色（admin 分配），对应不同权限；微信新用户自动注册默认 `roleCode=normal`、`status=active`（免审批），`wxOpenid`/`wxUnionid` 落库。
+- **兜底**：用户名密码登录保留（`admin/123456` 超管引导账号）；后续 CMS 微信扫码登录复用 `unionid`。
+- **配置**：`.env` 增加 `wechat_appid`/`wechat_secret`；`requirements.txt` 增加 `httpx`。
+
+### 🗄️ 种子数据
+
+- 示例工单 16 → **21 条**：新增返修/待确认/已归档演示数据，覆盖新状态与设备类型/费用字段。
+
+---
+
+> **最后更新**：2026-08-30
 
 ---

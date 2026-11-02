@@ -3,10 +3,11 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user, require_permission
 from app.core.response import success, error, paginate
+from app.services.recycle import soft_delete
 
-router = APIRouter(prefix="/honors", tags=["荣誉管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
+router = APIRouter(prefix="/honors", tags=["荣誉管理"], dependencies=[Depends(require_permission("honors"))])
 
 
 @router.get("")
@@ -55,5 +56,7 @@ async def delete_honor(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    await db.honors.delete_one({"_id": ObjectId(honor_id)})
-    return success(None, "荣誉已删除")
+    ok = await soft_delete(db, "honors", honor_id, user.get("realName") or user.get("username", ""))
+    if not ok:
+        return error(404, "荣誉不存在")
+    return success(None, "荣誉已移入回收站")

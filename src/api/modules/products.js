@@ -29,3 +29,10 @@ export function deleteProduct(id) {
 export function exportProducts(params) {
   return request.get('/products/export', { params, responseType: 'blob' })
 }
+
+/** POST /products/import (multipart) */
+export function importProducts(formData) {
+  return request.post('/products/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}

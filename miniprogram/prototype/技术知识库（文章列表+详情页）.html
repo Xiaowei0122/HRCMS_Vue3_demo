@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>技术知识库 - 文章列表 & 详情页</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/design-canvas.js"></script>
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/ios-frame.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #E8ECF1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .canvas-wrap { width: 100%; max-width: 480px; }
+  .design-label {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .design-label h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 6px;
+  }
+  .design-label p {
+    font-size: 13px;
+    color: #86909C;
+  }
+
+  /* ===== 通用页面 ===== */
+  .page {
+    width: 100%;
+    height: 100%;
+    background: #F5F7FA;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 导航栏 */
+  .navbar {
+    height: 88px;
+    padding-top: 44px;
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .navbar-title { color: #fff; font-size: 17px; font-weight: 600; }
+  .navbar-back {
+    position: absolute;
+    left: 16px;
+    bottom: 12px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .navbar-back svg {
+    width: 22px;
+    height: 22px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .page-content {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* ===== 搜索栏 ===== */
+  .search-header {
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%);
+    padding: 0 16px 16px;
+    flex-shrink: 0;
+  }
+  .search-box {
+    height: 42px;
+    background: rgba(255,255,255,0.95);
+    border-radius: 21px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .search-box svg {
+    width: 18px;
+    height: 18px;
+    stroke: #86909C;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+  .search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 14px;
+    color: #1D2129;
+    font-family: inherit;
+  }
+  .search-box input::placeholder { color: #C9CDD4; }
+  .search-btn {
+    padding: 5px 14px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 14px;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  /* ===== 分类Tab ===== */
+  .category-tabs {
+    display: flex;
+    background: #fff;
+    padding: 0 12px;
+    overflow-x: auto;
+    gap: 4px;
+    border-bottom: 1px solid #F2F3F5;
+    flex-shrink: 0;
+  }
+  .category-tab {
+    padding: 14px 14px;
+    font-size: 14px;
+    color: #4E5969;
+    font-weight: 500;
+    white-space: nowrap;
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .category-tab.active {
+    color: #165DFF;
+    font-weight: 700;
+  }
+  .category-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 14px;
+    right: 14px;
+    height: 3px;
+    background: linear-gradient(90deg, #165DFF, #4080FF);
+    border-radius: 2px;
+  }
+  .category-tab .count {
+    font-size: 11px;
+    background: #F2F3F5;
+    color: #86909C;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+  .category-tab.active .count {
+    background: #E8F3FF;
+    color: #165DFF;
+  }
+
+  /* ===== 热门搜索 ===== */
+  .hot-search {
+    margin: 12px 16px;
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .hot-search-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1D2129;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .hot-search-title svg {
+    width: 16px;
+    height: 16px;
+    fill: #FF7D00;
+    stroke: none;
+  }
+  .hot-search-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hot-search-tag {
+    padding: 6px 12px;
+    background: #F7F8FA;
+    border-radius: 14px;
+    font-size: 12px;
+    color: #4E5969;
+  }
+  .hot-search-tag.hot {
+    background: #FFF3E8;
+    color: #FF7D00;
+  }
+
+  /* ===== 文章卡片 ===== */
+  .article-list {
+    padding: 4px 16px 20px;
+  }
+  .article-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+    cursor: pointer;
+  }
+  .article-thumb {
+    width: 96px;
+    height: 96px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .article-thumb svg {
+    width: 42px;
+    height: 42px;
+    stroke-width: 1.5;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .thumb-printer { background: linear-gradient(135deg, #E8F3FF, #BEDAFF); }
+  .thumb-printer svg { stroke: #165DFF; }
+  .thumb-case { background: linear-gradient(135deg, #FFF3E8, #FFD8A8); }
+  .thumb-case svg { stroke: #FF7D00; }
+  .thumb-system { background: linear-gradient(135deg, #E8FFEA, #A8E6B0); }
+  .thumb-system svg { stroke: #00B42A; }
+  .thumb-network { background: linear-gradient(135deg, #F0E8FF, #D4BFFF); }
+  .thumb-network svg { stroke: #722ED1; }
+  .thumb-camera { background: linear-gradient(135deg, #FFE8E8, #FFC8C8); }
+  .thumb-camera svg { stroke: #F53F3F; }
+  .thumb-software { background: linear-gradient(135deg, #E8FFFF, #A8F0F0); }
+  .thumb-software svg { stroke: #14C9C9; }
+
+  .article-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-width: 0;
+  }
+  .article-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1D2129;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .article-desc {
+    font-size: 12px;
+    color: #86909C;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .article-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+  .article-tag {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 500;
+  }
+  .tag-tutorial { background: #E8F3FF; color: #165DFF; }
+  .tag-case { background: #FFF3E8; color: #FF7D00; }
+  .tag-guide { background: #E8FFEA; color: #00B42A; }
+  .tag-network { background: #F0E8FF; color: #722ED1; }
+  .tag-camera { background: #FFE8E8; color: #F53F3F; }
+  .article-views {
+    font-size: 11px;
+    color: #C9CDD4;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: auto;
+  }
+  .article-views svg {
+    width: 12px;
+    height: 12px;
+    stroke: #C9CDD4;
+    fill: none;
+    stroke-width: 2;
+  }
+
+  /* ===== 文章详情页 ===== */
+  .detail-navbar {
+    height: 88px;
+    padding-top: 44px;
+    background: linear-gradient(135deg, #165DFF 0%, #4080FF 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .detail-navbar-title { color: #fff; font-size: 17px; font-weight: 600; }
+  .detail-navbar-back {
+    position: absolute;
+    left: 16px;
+    bottom: 12px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .detail-navbar-back svg {
+    width: 22px;
+    height: 22px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .detail-navbar-share {
+    position: absolute;
+    right: 16px;
+    bottom: 12px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .detail-navbar-share svg {
+    width: 20px;
+    height: 20px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .detail-content {
+    flex: 1;
+    overflow-y: auto;
+    background: #fff;
+  }
+  .detail-article {
+    padding: 20px 18px 30px;
+  }
+  .detail-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1D2129;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #F2F3F5;
+    flex-wrap: wrap;
+  }
+  .detail-tag {
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    background: #E8F3FF;
+    color: #165DFF;
+  }
+  .detail-date {
+    font-size: 12px;
+    color: #86909C;
+  }
+  .detail-views {
+    font-size: 12px;
+    color: #86909C;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .detail-views svg {
+    width: 13px;
+    height: 13px;
+    stroke: #86909C;
+    fill: none;
+    stroke-width: 2;
+  }
+  .detail-author {
+    font-size: 12px;
+    color: #86909C;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+  }
+  .detail-author-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .detail-body {
+    font-size: 15px;
+    color: #4E5969;
+    line-height: 1.8;
+  }
+  .detail-body p {
+    margin-bottom: 14px;
+  }
+  .detail-body h3 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1D2129;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-body h3::before {
+    content: '';
+    width: 4px;
+    height: 18px;
+    background: linear-gradient(180deg, #165DFF, #4080FF);
+    border-radius: 2px;
+  }
+  .detail-body ul {
+    margin-bottom: 14px;
+    padding-left: 20px;
+  }
+  .detail-body li {
+    margin-bottom: 8px;
+    line-height: 1.7;
+  }
+  .detail-body li::marker {
+    color: #165DFF;
+  }
+  .detail-body .tip-box {
+    background: #E8F3FF;
+    border-left: 3px solid #165DFF;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: #4E5969;
+    line-height: 1.6;
+  }
+  .detail-body .tip-box strong {
+    color: #165DFF;
+  }
+  .detail-body .warning-box {
+    background: #FFF7E8;
+    border-left: 3px solid #FF7D00;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: #4E5969;
+    line-height: 1.6;
+  }
+  .detail-body .warning-box strong {
+    color: #FF7D00;
+  }
+  .detail-body code {
+    background: #F2F3F5;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #F53F3F;
+    font-family: 'Courier New', monospace;
+  }
+  .detail-body .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    margin-right: 6px;
+  }
+
+  /* 相关推荐 */
+  .detail-related {
+    margin: 24px -18px 0;
+    padding: 20px 18px;
+    background: #F7F8FA;
+  }
+  .detail-related-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .detail-related-title::before {
+    content: '';
+    width: 4px;
+    height: 18px;
+    background: linear-gradient(180deg, #165DFF, #4080FF);
+    border-radius: 2px;
+  }
+  .related-item {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .related-item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #E8F3FF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .related-item-icon svg {
+    width: 18px;
+    height: 18px;
+    stroke: #165DFF;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+  .related-item-text {
+    flex: 1;
+    font-size: 13px;
+    color: #4E5969;
+    font-weight: 500;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .related-item-arrow {
+    width: 14px;
+    height: 14px;
+    stroke: #C9CDD4;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    flex-shrink: 0;
+  }
+
+  /* 底部操作栏 */
+  .detail-bottom-bar {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: #fff;
+    border-top: 1px solid #F2F3F5;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .detail-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+  }
+  .detail-action svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .detail-action.like svg { stroke: #86909C; }
+  .detail-action.like.active svg { stroke: #F53F3F; fill: #F53F3F; }
+  .detail-action.fav svg { stroke: #86909C; }
+  .detail-action.fav.active svg { stroke: #FF7D00; fill: #FF7D00; }
+  .detail-action-label {
+    font-size: 10px;
+    color: #86909C;
+  }
+  .detail-action.active .detail-action-label { color: #165DFF; }
+  .detail-contact-btn {
+    flex: 1;
+    height: 42px;
+    border-radius: 21px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    box-shadow: 0 4px 12px rgba(22,93,255,0.3);
+  }
+  .detail-contact-btn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #fff;
+    stroke-width: 2;
+    fill: none;
+    stroke-linecap: round;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas-wrap">
+  <div class="design-label">
+    <h1>技术知识库 · 文章列表 & 详情页</h1>
+    <p>分类筛选 + 搜索 + 文章卡片 + 详情页排版 · 单独版本</p>
+  </div>
+
+  <design-canvas>
+    <dc-section title="技术知识库" subtitle="iPhone 14 · 390×844">
+
+      <!-- ===== 文章列表页 ===== -->
+      <dc-artboard id="kb-list" label="文章列表" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="navbar">
+              <div class="navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="navbar-title">技术知识库</div>
+            </div>
+
+            <!-- 搜索栏 -->
+            <div class="search-header">
+              <div class="search-box">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" placeholder="搜索文章，如：打印机驱动、网络故障...">
+                <button class="search-btn">搜索</button>
+              </div>
+            </div>
+
+            <!-- 分类Tab -->
+            <div class="category-tabs">
+              <div class="category-tab active">全部 <span class="count">128</span></div>
+              <div class="category-tab">驱动安装 <span class="count">32</span></div>
+              <div class="category-tab">故障案例 <span class="count">45</span></div>
+              <div class="category-tab">系统维护 <span class="count">28</span></div>
+              <div class="category-tab">网络运维 <span class="count">15</span></div>
+              <div class="category-tab">监控安防 <span class="count">8</span></div>
+            </div>
+
+            <div class="page-content">
+              <!-- 热门搜索 -->
+              <div class="hot-search">
+                <div class="hot-search-title">
+                  <svg viewBox="0 0 24 24"><path d="M12 2c1 3 3 5 3 8a3 3 0 0 1-6 0c0-3 2-5 3-8z"/><path d="M5 12a7 7 0 0 0 14 0"/><path d="M12 19v3"/></svg>
+                  热门搜索
+                </div>
+                <div class="hot-search-tags">
+                  <span class="hot-search-tag hot">打印机驱动安装</span>
+                  <span class="hot-search-tag hot">统信UOS教程</span>
+                  <span class="hot-search-tag">电脑蓝屏</span>
+                  <span class="hot-search-tag">网络不通</span>
+                  <span class="hot-search-tag">POE摄像头</span>
+                  <span class="hot-search-tag">门禁离线</span>
+                </div>
+              </div>
+
+              <!-- 文章列表 -->
+              <div class="article-list">
+                <div class="article-card">
+                  <div class="article-thumb thumb-printer">
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">国产操作系统如何安装打印机驱动？统信UOS完整教程</div>
+                      <div class="article-desc">适配惠普、佳能、爱普生等主流品牌，一步一步教你搞定</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-tutorial">驱动安装</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        2.3k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="article-card">
+                  <div class="article-thumb thumb-case">
+                    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">打印机常见故障排查：卡纸、偏淡、异响三分钟解决</div>
+                      <div class="article-desc">京瓷P8060、惠普P1106等机型实战案例汇总</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-case">故障案例</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        1.8k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="article-card">
+                  <div class="article-thumb thumb-system">
+                    <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">Windows网络配置丢失修复：Winsock重置与DNS刷新指南</div>
+                      <div class="article-desc">无法上网、IP冲突、DNS解析失败的完整排查流程</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-guide">系统维护</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        1.5k
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="article-card">
+                  <div class="article-thumb thumb-network">
+                    <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">海康POE摄像头离线排查：从交换机到网线的完整检测链路</div>
+                      <div class="article-desc">供电不足、IP冲突、网线老化逐一排除法</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-network">网络运维</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        986
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="article-card">
+                  <div class="article-thumb thumb-camera">
+                    <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  </div>
+                  <div class="article-content">
+                    <div>
+                      <div class="article-title">门禁控制器离线故障处理：网络与供电双维度排查</div>
+                      <div class="article-desc">ping网关、检查POE供电、观察指示灯状态</div>
+                    </div>
+                    <div class="article-meta">
+                      <span class="article-tag tag-camera">监控安防</span>
+                      <span class="article-views">
+                        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        752
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 文章详情页 ===== -->
+      <dc-artboard id="kb-detail" label="文章详情" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="detail-navbar">
+              <div class="detail-navbar-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+              <div class="detail-navbar-title">知识详情</div>
+              <div class="detail-navbar-share"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></div>
+            </div>
+
+            <div class="detail-content">
+              <div class="detail-article">
+                <h1 class="detail-title">门禁控制器离线故障处理：网络与供电双维度排查指南</h1>
+
+                <div class="detail-meta">
+                  <span class="detail-tag">网络运维</span>
+                  <span class="detail-date">2025-05-08</span>
+                  <span class="detail-views">
+                    <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    152 次阅读
+                  </span>
+                  <span class="detail-author">
+                    <span class="detail-author-avatar">张</span>
+                    张工整理
+                  </span>
+                </div>
+
+                <div class="detail-body">
+                  <p>门禁控制器离线通常与<strong>网络</strong>或<strong>供电</strong>相关，遇到此类问题请按以下步骤逐一排查，大部分故障可在10分钟内定位。</p>
+
+                  <h3>一、网络连通性排查</h3>
+                  <ul>
+                    <li><span class="step-num">1</span>使用电脑 ping 网关确认网络连通，如 <code>ping 192.168.1.1</code></li>
+                    <li><span class="step-num">2</span>检查控制器 IP 地址是否与局域网在同一网段</li>
+                    <li><span class="step-num">3</span>确认交换机端口指示灯是否正常闪烁</li>
+                    <li><span class="step-num">4</span>尝试更换网线或交换机端口测试</li>
+                  </ul>
+
+                  <div class="tip-box">
+                    <strong>小技巧：</strong>如果 ping 不通但指示灯正常，可能是 IP 冲突，可尝试修改控制器 IP 后重试。
+                  </div>
+
+                  <h3>二、供电状态检查</h3>
+                  <ul>
+                    <li><span class="step-num">1</span>检查 POE 交换机端口供电是否正常（功率是否足够）</li>
+                    <li><span class="step-num">2</span>观察控制器指示灯状态：常亮=正常，闪烁=故障，不亮=断电</li>
+                    <li><span class="step-num">3</span>如为独立电源供电，检查电源适配器是否损坏</li>
+                    <li><span class="step-num">4</span>测量供电电压是否在额定范围内（通常12V/24V）</li>
+                  </ul>
+
+                  <div class="warning-box">
+                    <strong>注意：</strong>POE 供电需确认交换机支持 802.3af/at 标准，且单端口功率不低于 15.4W，部分双门控制器需 30W。
+                  </div>
+
+                  <h3>三、固件与配置</h3>
+                  <p>如属固件问题，需远程升级至最新版本：</p>
+                  <ul>
+                    <li>登录控制器管理后台，查看当前固件版本</li>
+                    <li>到厂商官网下载对应型号的最新固件</li>
+                    <li>在系统设置 → 固件升级中上传并等待重启</li>
+                    <li>升级完成后恢复出厂设置，重新配置参数</li>
+                  </ul>
+
+                  <h3>四、仍无法解决</h3>
+                  <p>如以上步骤均无法解决问题，可能是控制器硬件故障，请联系工程师上门检测。可通过下方按钮一键报修，我们将在30分钟内响应。</p>
+                </div>
+
+                <!-- 相关推荐 -->
+                <div class="detail-related">
+                  <div class="detail-related-title">相关推荐</div>
+                  <div class="related-item">
+                    <div class="related-item-icon">
+                      <svg viewBox="0 0 24 24"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/></svg>
+                    </div>
+                    <span class="related-item-text">海康POE摄像头离线排查：从交换机到网线的完整检测链路</span>
+                    <svg class="related-item-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                  <div class="related-item">
+                    <div class="related-item-icon" style="background:#FFF3E8;">
+                      <svg viewBox="0 0 24 24" style="stroke:#FF7D00;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                    </div>
+                    <span class="related-item-text">交换机端口故障判断：指示灯状态与测试方法汇总</span>
+                    <svg class="related-item-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                  <div class="related-item">
+                    <div class="related-item-icon" style="background:#E8FFEA;">
+                      <svg viewBox="0 0 24 24" style="stroke:#00B42A;"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/></svg>
+                    </div>
+                    <span class="related-item-text">Windows网络配置丢失修复：Winsock重置与DNS刷新</span>
+                    <svg class="related-item-arrow" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 底部操作栏 -->
+            <div class="detail-bottom-bar">
+              <div class="detail-action like">
+                <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                <span class="detail-action-label">点赞</span>
+              </div>
+              <div class="detail-action fav">
+                <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <span class="detail-action-label">收藏</span>
+              </div>
+              <button class="detail-contact-btn">
+                <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                一键报修
+              </button>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+    </dc-section>
+  </design-canvas>
+</div>
+
+</body>
+</html>

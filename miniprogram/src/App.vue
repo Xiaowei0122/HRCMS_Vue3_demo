@@ -1,5 +1,9 @@
 <template>
-  <router-view />
+  <router-view v-slot="{ Component }">
+    <transition name="route" mode="out-in">
+      <component :is="Component" />
+    </transition>
+  </router-view>
 </template>
 
 <script setup>
@@ -38,8 +42,10 @@ button {
   font-size: inherit;
   line-height: inherit;
   cursor: pointer;
+  transition: opacity 0.15s ease;
 
   &::after { display: none; }
+  &:active { opacity: 0.8; }
 }
 
 /* ── Toast polyfill ── */
@@ -60,4 +66,24 @@ button {
   backdrop-filter: blur(8px);
 }
 .uni-toast--fadeout { opacity: 0; }
+
+/* ── 页面切换过渡（覆盖所有页面）── */
+.route-enter-active,
+.route-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.route-enter-from {
+  opacity: 0;
+  transform: translateY(14px);
+}
+.route-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* ── 通用可点击块按压反馈（供各页面复用）── */
+.tappable {
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  &:active { transform: scale(0.97); opacity: 0.85; }
+}
 </style>

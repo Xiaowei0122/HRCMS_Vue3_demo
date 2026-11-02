@@ -1,41 +1,43 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { getToken, getUserInfo } from '@/utils/auth'
+import { getToken } from '@/utils/auth'
+import { hasPerm } from '@/utils/permission'
 
-// ── 角色菜单访问映射 ──
-// 路径前缀 → 允许的 userType 集合
-const ROLE_ACCESS = {
-  'dashboard':       new Set(['admin', 'internal', 'engineer', 'normal']),
-  'leads':           new Set(['admin', 'internal']),
-  'after_sales':     new Set(['admin', 'internal', 'engineer', 'normal']),
-  'after_sales/repair-apply': new Set(['admin', 'internal', 'engineer', 'normal']),
-  'after_sales/my-repairs':   new Set(['admin', 'internal', 'engineer', 'normal']),
-  'after_sales/all-tasks':    new Set(['admin', 'internal', 'engineer']),
-  'after_sales/schedule':     new Set(['admin', 'internal', 'engineer']),
-  'after_sales/complaints':   new Set(['admin', 'internal', 'normal']),
-  'after_sales/contact':      new Set(['admin', 'internal', 'engineer', 'normal']),
-  'products':        new Set(['admin', 'internal']),
-  'news':            new Set(['admin', 'internal']),
-  'honors':          new Set(['admin', 'internal']),
-  'cases':           new Set(['admin', 'internal']),
-  'global-config':   new Set(['admin', 'internal']),
-  'finance':         new Set(['admin', 'internal']),
-  'system':          new Set(['admin']),
+// ── 路由路径 → 所需权限 code ──
+const ROUTE_PERMS = {
+  '/dashboard': ['dashboard'],
+  '/leads': ['demand'],
+  '/after_sales/repair-apply': ['repair:create'],
+  '/after_sales/my-repairs': ['repair:my'],
+  '/after_sales/all-tasks': ['repair:all', 'repair:audit'],
+  '/after_sales/schedule': ['repair:schedule', 'repair:audit'],
+  '/after_sales/complaints': ['complaints'],
+  '/miniapp/contact': ['contact'],
+  '/miniapp/knowledge': ['knowledge'],
+  '/products': ['products'],
+  '/news': ['news'],
+  '/honors': ['honors'],
+  '/cases': ['cases'],
+  '/global-config': ['config'],
+  '/finance/files': ['finance:files'],
+  '/finance/assets': ['finance:assets'],
+  '/finance/vehicles': ['finance:vehicle'],
+  '/system/users': ['system:users'],
+  '/system/roles': ['system:roles'],
+  '/system/logs': ['system:logs'],
+  '/system/dict': ['system:dict'],
+  '/system/depts': ['system:depts'],
+  '/system/settings': ['system:settings'],
+  '/system/recycle': ['system:recycle'],
+  '/reports': ['report'],
 }
 
-function canAccessRoute(path, userType) {
-  if (userType === 'admin') return true  // 管理员全部可访问
-  // 匹配最具体的路径
-  const keys = Object.keys(ROLE_ACCESS).sort((a, b) => b.length - a.length)  // 长路径优先
-  for (const key of keys) {
-    if (path === `/${key}` || path.startsWith(`/${key}/`)) {
-      const allowed = ROLE_ACCESS[key]
-      // 内部员工可访问所有非系统管理页面
-      if (userType === 'internal' && !path.startsWith('/system')) return true
-      return allowed.has(userType)
-    }
-  }
-  // 不在映射表中的路径默认仅 admin
-  return userType === 'admin'
+function canAccessRoute(path) {
+  const codes = ROUTE_PERMS[path]
+  if (codes) return hasPerm(...codes)
+  // 工单详情为动态路由，归属于「我的报修 / 所有工单」（财务只读调阅也可查看）
+  if (path.startsWith('/after_sales/repair-detail')) return hasPerm('repair:my', 'repair:all', 'repair:audit')
+  // 未映射路径（404 兜底等）默认放行，由后端鉴权兜底
+  return true
 }
 
 // 1. 定义路由表
@@ -57,6 +59,20 @@ const routes = [
         name: 'Dashboard',
         component: () => import('../views/Dashboard.vue'),
         meta: { title: '系统概览' }
+      },
+
+      // --- 个人能力（登录即有，不占权限位）---
+      {
+        path: 'todos',
+        name: 'Todos',
+        component: () => import('../views/Todos.vue'),
+        meta: { title: '我的待办' }
+      },
+      {
+        path: 'profile',
+        name: 'Profile',
+        component: () => import('../views/Profile.vue'),
+        meta: { title: '个人中心' }
       },
 
       // --- 售后报修系统 (新模块) ---
@@ -88,7 +104,7 @@ const routes = [
         path: 'after_sales/schedule',
         name: 'EngineerSchedule',
         component: () => import('../views/after_sales/EngineerSchedule.vue'),
-        meta: { title: '工程师期排' }
+        meta: { title: '工程师排期' }
       },
       {
         path: 'after_sales/complaints',
@@ -96,11 +112,18 @@ const routes = [
         component: () => import('../views/after_sales/Complaints.vue'),
         meta: { title: '投诉建议' }
       },
+      // --- 小程序管理 (新模块) ---
       {
-        path: 'after_sales/contact',
-        name: 'ContactUs',
-        component: () => import('../views/after_sales/ContactUs.vue'),
-        meta: { title: '联系我们' }
+        path: 'miniapp/contact',
+        name: 'MiniappContact',
+        component: () => import('../views/miniapp/ContactUs.vue'),
+        meta: { title: '联系我们配置' }
+      },
+      {
+        path: 'miniapp/knowledge',
+        name: 'MiniappKnowledge',
+        component: () => import('../views/miniapp/Knowledge.vue'),
+        meta: { title: '知识库管理' }
       },
 
       // --- 门户配置 ---
@@ -108,7 +131,7 @@ const routes = [
         path: 'global-config',
         name: 'GlobalConfig',
         component: () => import('../views/GlobalConfig.vue'),
-        meta: { title: '门户全局配置' }
+        meta: { title: '全局配置' }
       },
       {
         path: 'products',
@@ -160,6 +183,36 @@ const routes = [
         component: () => import('../views/system/Logs.vue'),
         meta: { title: '操作日志' }
       },
+      {
+        path: 'system/dict',
+        name: 'DictManage',
+        component: () => import('../views/system/Dict.vue'),
+        meta: { title: '数据字典' }
+      },
+      {
+        path: 'system/depts',
+        name: 'DeptManage',
+        component: () => import('../views/system/Depts.vue'),
+        meta: { title: '部门管理' }
+      },
+      {
+        path: 'system/settings',
+        name: 'SystemSettings',
+        component: () => import('../views/system/Settings.vue'),
+        meta: { title: '系统设置' }
+      },
+      {
+        path: 'system/recycle',
+        name: 'RecycleBin',
+        component: () => import('../views/system/Recycle.vue'),
+        meta: { title: '回收站' }
+      },
+      {
+        path: 'reports',
+        name: 'Reports',
+        component: () => import('../views/Reports.vue'),
+        meta: { title: '数据报表' }
+      },
 
       // --- 财务管理 ---
       {
@@ -173,6 +226,12 @@ const routes = [
         name: 'FinanceAssets',
         component: () => import('../views/finance/AssetManage.vue'),
         meta: { title: '资产管理' }
+      },
+      {
+        path: 'finance/vehicles',
+        name: 'FinanceVehicles',
+        component: () => import('../views/finance/VehicleManage.vue'),
+        meta: { title: '车辆管理' }
       }
     ]
   },
@@ -188,8 +247,8 @@ const router = createRouter({
   routes
 })
 
-// 2. 路由守卫
-router.beforeEach((to, from, next) => {
+// 2. 路由守卫（vue-router 5：直接返回目标，不再使用 next() 回调）
+router.beforeEach((to) => {
   // 设置标题
   if (to.meta.title) {
     document.title = `${to.meta.title} - 鸿瑞办公CMS`
@@ -197,30 +256,22 @@ router.beforeEach((to, from, next) => {
 
   const token = getToken()
 
+  // 未登录 → 跳转登录页
   if (to.name !== 'Login' && !token) {
-    // 未登录 → 跳转登录页
-    next({ name: 'Login' })
-    return
+    return { name: 'Login' }
   }
 
+  // 已登录 → 跳过登录页，直接进仪表盘
   if (to.name === 'Login' && token) {
-    // 已登录 → 跳过登录页，直接进仪表盘
-    next({ path: '/dashboard' })
-    return
+    return { path: '/dashboard' }
   }
 
-  // 若已登录，校验角色是否有权访问目标路由
-  if (token && to.path !== '/dashboard') {
-    const userInfo = getUserInfo()
-    const userType = userInfo?.userType || ''
-    if (!canAccessRoute(to.path, userType)) {
-      // 无权限 → 强制跳转仪表盘
-      next({ path: '/dashboard' })
-      return
-    }
+  // 已登录且访问非仪表盘路由 → 校验权限，无权限则强制回仪表盘
+  if (token && to.path !== '/dashboard' && !canAccessRoute(to.path)) {
+    return { path: '/dashboard' }
   }
 
-  next()
+  return true
 })
 
 export default router

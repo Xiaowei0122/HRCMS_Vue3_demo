@@ -4,10 +4,11 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user, require_permission
 from app.core.response import success, error, paginate
+from app.services.recycle import soft_delete
 
-router = APIRouter(prefix="/cases", tags=["案例管理"], dependencies=[Depends(require_user_types("admin", "internal"))])
+router = APIRouter(prefix="/cases", tags=["案例管理"], dependencies=[Depends(require_permission("cases"))])
 
 
 @router.get("")
@@ -33,6 +34,7 @@ async def get_case_list(
             "mode": c.get("mode", ""),
             "summary": c.get("summary", ""),
             "date": c.get("date", ""),
+            "img": c.get("img", ""),
         })
     return success(paginate(records, total, page, size))
 
@@ -65,5 +67,7 @@ async def delete_case(
     db: AsyncIOMotorDatabase = Depends(get_db),
     user: dict = Depends(get_current_user),
 ):
-    await db.cases.delete_one({"_id": ObjectId(case_id)})
-    return success(None, "案例已删除")
+    ok = await soft_delete(db, "cases", case_id, user.get("realName") or user.get("username", ""))
+    if not ok:
+        return error(404, "案例不存在")
+    return success(None, "案例已移入回收站")

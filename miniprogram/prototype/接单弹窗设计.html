@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>接单弹窗 - 重新设计版</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&display=swap">
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/design-canvas.js"></script>
+<script src="https://sf3-scmcdn-cn.feishucdn.com/obj/feishu-static/miaoda/coding-unpkg-sdk/@lark-apaas/coding-registry-buildless@0.1.22/scripts/ios-frame.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #E8ECF1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .canvas-wrap { width: 100%; max-width: 480px; }
+  .design-label {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .design-label h1 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 6px;
+  }
+  .design-label p {
+    font-size: 13px;
+    color: #86909C;
+  }
+
+  .page {
+    width: 100%;
+    height: 100%;
+    background: #F5F7FA;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 工单详情背景（模糊） */
+  .detail-bg {
+    width: 100%;
+    height: 100%;
+    filter: blur(2px);
+    opacity: 0.6;
+  }
+  .detail-header {
+    height: 200px;
+    background: linear-gradient(135deg, #FF7D00 0%, #FF9A2E 100%);
+    padding: 54px 20px 0;
+    color: #fff;
+  }
+  .detail-back {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .detail-back svg { width: 22px; height: 22px; stroke: #fff; stroke-width: 2; fill: none; }
+  .detail-status {
+    font-size: 24px; font-weight: 700; margin-bottom: 6px;
+  }
+  .detail-order-no {
+    font-size: 13px; opacity: 0.9;
+  }
+  .detail-card {
+    margin: -30px 16px 12px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  .detail-card-title {
+    font-size: 15px; font-weight: 700; color: #1D2129;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 14px;
+  }
+  .detail-card-title svg { width: 20px; height: 20px; stroke: #165DFF; stroke-width: 2; fill: none; }
+  .detail-row {
+    display: flex; justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #F7F8FA;
+    font-size: 13px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-label { color: #86909C; }
+  .detail-value { color: #1D2129; font-weight: 500; text-align: right; max-width: 60%; }
+  .urgent-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #FFF1F0;
+    color: #F53F3F;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* 遮罩 */
+  .modal-mask {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  /* ===== 弹窗通用 ===== */
+  .modal {
+    width: 100%;
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: #E5E6EB;
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1D2129;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .modal-subtitle {
+    font-size: 13px;
+    color: #86909C;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  /* 工单摘要条 */
+  .order-summary {
+    background: #F7F8FA;
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .order-summary-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #FFF3E8, #FFE0B8);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .order-summary-icon svg { width: 22px; height: 22px; stroke: #FF7D00; stroke-width: 2; fill: none; }
+  .order-summary-info { flex: 1; min-width: 0; }
+  .order-summary-name {
+    font-size: 14px; font-weight: 600; color: #1D2129;
+    margin-bottom: 2px;
+  }
+  .order-summary-desc {
+    font-size: 12px; color: #86909C;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .order-summary-urgent {
+    font-size: 10px;
+    padding: 1px 6px;
+    background: #FFF1F0;
+    color: #F53F3F;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  /* 预约时段卡片 */
+  .appointment-card {
+    background: linear-gradient(135deg, #E8F3FF 0%, #F0F7FF 100%);
+    border: 1.5px solid #BEDAFF;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .appointment-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #165DFF, #4080FF);
+    border-radius: 14px 14px 0 0;
+  }
+  .appointment-label {
+    font-size: 12px;
+    color: #165DFF;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .appointment-label svg { width: 14px; height: 14px; stroke: #165DFF; stroke-width: 2; fill: none; }
+  .appointment-time {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .appointment-date {
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .appointment-date-day {
+    font-size: 28px;
+    font-weight: 900;
+    color: #165DFF;
+    line-height: 1;
+  }
+  .appointment-date-week {
+    font-size: 12px;
+    color: #4E5969;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .appointment-divider {
+    width: 1px;
+    height: 40px;
+    background: #BEDAFF;
+  }
+  .appointment-detail {
+    flex: 1;
+  }
+  .appointment-period {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1D2129;
+    margin-bottom: 4px;
+  }
+  .appointment-range {
+    font-size: 13px;
+    color: #4E5969;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .appointment-range svg { width: 13px; height: 13px; stroke: #86909C; stroke-width: 2; fill: none; }
+  .appointment-tip {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #BEDAFF;
+    font-size: 11px;
+    color: #86909C;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .appointment-tip svg { width: 12px; height: 12px; stroke: #FF7D00; stroke-width: 2; fill: none; flex-shrink: 0; }
+
+  /* 按钮组 */
+  .btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn-primary {
+    width: 100%;
+    height: 50px;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 6px 16px rgba(22,93,255,0.3);
+  }
+  .btn-primary svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 2; fill: none; stroke-linecap: round; }
+  .btn-secondary-row {
+    display: flex;
+    gap: 10px;
+  }
+  .btn-secondary {
+    flex: 1;
+    height: 46px;
+    border-radius: 23px;
+    background: #F2F3F5;
+    color: #4E5969;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-secondary svg { width: 18px; height: 18px; stroke-width: 2; fill: none; stroke-linecap: round; }
+  .btn-secondary.danger {
+    background: #FFF1F0;
+    color: #F53F3F;
+  }
+  .btn-secondary.danger svg { stroke: #F53F3F; }
+  .btn-secondary svg { stroke: #4E5969; }
+
+  /* ===== 改派时间弹窗 ===== */
+  .reschedule-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .reschedule-back {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #F2F3F5;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .reschedule-back svg { width: 18px; height: 18px; stroke: #4E5969; stroke-width: 2; fill: none; }
+  .reschedule-title {
+    font-size: 17px; font-weight: 700; color: #1D2129;
+  }
+  .reschedule-placeholder { width: 32px; }
+
+  .date-scroll {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    margin-bottom: 16px;
+  }
+  .date-item {
+    flex-shrink: 0;
+    width: 56px;
+    padding: 10px 0;
+    border-radius: 12px;
+    background: #F7F8FA;
+    text-align: center;
+    cursor: pointer;
+  }
+  .date-item.active {
+    background: linear-gradient(135deg, #165DFF, #4080FF);
+  }
+  .date-item-week {
+    font-size: 11px;
+    color: #86909C;
+    margin-bottom: 4px;
+  }
+  .date-item.active .date-item-week { color: rgba(255,255,255,0.8); }
+  .date-item-day {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1D2129;
+  }
+  .date-item.active .date-item-day { color: #fff; }
+  .date-item.today .date-item-day { color: #165DFF; }
+  .date-item.active.today .date-item-day { color: #fff; }
+
+  .time-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1D2129;
+    margin-bottom: 10px;
+  }
+  .time-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .time-slot {
+    padding: 12px 8px;
+    border-radius: 10px;
+    background: #F7F8FA;
+    text-align: center;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+  }
+  .time-slot.selected {
+    background: #E8F3FF;
+    border-color: #165DFF;
+  }
+  .time-slot.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    position: relative;
+  }
+  .time-slot.disabled::after {
+    content: '已约';
+    position: absolute;
+    top: 4px; right: 6px;
+    font-size: 9px;
+    color: #F53F3F;
+    font-weight: 600;
+  }
+  .time-slot-period {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1D2129;
+    margin-bottom: 2px;
+  }
+  .time-slot.selected .time-slot-period { color: #165DFF; }
+  .time-slot-range {
+    font-size: 11px;
+    color: #86909C;
+  }
+  .time-slot.selected .time-slot-range { color: #4080FF; }
+
+  .reschedule-reason {
+    margin-bottom: 16px;
+  }
+  .reschedule-reason-label {
+    font-size: 13px;
+    color: #4E5969;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .reason-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .reason-tag {
+    padding: 7px 14px;
+    border-radius: 16px;
+    background: #F7F8FA;
+    font-size: 12px;
+    color: #4E5969;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .reason-tag.active {
+    background: #E8F3FF;
+    color: #165DFF;
+    font-weight: 600;
+  }
+
+  /* 退回确认弹窗 */
+  .reject-icon {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: #FFF1F0;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px;
+  }
+  .reject-icon svg { width: 28px; height: 28px; stroke: #F53F3F; stroke-width: 2; fill: none; }
+  .reject-text {
+    text-align: center;
+    font-size: 14px;
+    color: #4E5969;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .reject-text strong { color: #1D2129; }
+</style>
+</head>
+<body>
+
+<div class="canvas-wrap">
+  <div class="design-label">
+    <h1>接单弹窗 · 重新设计版</h1>
+    <p>预约时段展示 + 确认接单/改派时间/退回工单 · 三态交互</p>
+  </div>
+
+  <design-canvas>
+    <dc-section title="接单弹窗设计" subtitle="iPhone 14 · 390×844">
+
+      <!-- ===== 状态1：初始接单弹窗 ===== -->
+      <dc-artboard id="modal-accept" label="①接单弹窗" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <!-- 模糊背景 -->
+            <div class="detail-bg">
+              <div class="detail-header">
+                <div class="detail-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+                <div class="detail-status">待接单</div>
+                <div class="detail-order-no">工单号：HR202609144281</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-card-title">
+                  <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  工单信息
+                </div>
+                <div class="detail-row"><span class="detail-label">工单号</span><span class="detail-value">HR202609144281</span></div>
+                <div class="detail-row"><span class="detail-label">报修单位</span><span class="detail-value">上林卫生院</span></div>
+                <div class="detail-row"><span class="detail-label">设备类型</span><span class="detail-value">打印机</span></div>
+                <div class="detail-row"><span class="detail-label">紧急程度</span><span class="detail-value"><span class="urgent-tag">普通</span></span></div>
+                <div class="detail-row"><span class="detail-label">基本情况</span><span class="detail-value">打印机卡纸</span></div>
+              </div>
+            </div>
+
+            <!-- 遮罩 + 弹窗 -->
+            <div class="modal-mask">
+              <div class="modal">
+                <div class="modal-handle"></div>
+                <div class="modal-title">接单确认</div>
+                <div class="modal-subtitle">请确认预约时段，或选择改派/退回</div>
+
+                <!-- 工单摘要 -->
+                <div class="order-summary">
+                  <div class="order-summary-icon">
+                    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                  </div>
+                  <div class="order-summary-info">
+                    <div class="order-summary-name">上林卫生院 · 打印机维修</div>
+                    <div class="order-summary-desc">
+                      <span>李老师</span>
+                      <span class="order-summary-urgent">普通</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 预约时段卡片 -->
+                <div class="appointment-card">
+                  <div class="appointment-label">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    用户已预约时段
+                  </div>
+                  <div class="appointment-time">
+                    <div class="appointment-date">
+                      <div class="appointment-date-day">14</div>
+                      <div class="appointment-date-week">周一</div>
+                    </div>
+                    <div class="appointment-divider"></div>
+                    <div class="appointment-detail">
+                      <div class="appointment-period">上午（早）</div>
+                      <div class="appointment-range">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        08:30 - 10:00
+                      </div>
+                    </div>
+                  </div>
+                  <div class="appointment-tip">
+                    <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    确认接单后将锁定此时段，请确保能按时上门
+                  </div>
+                </div>
+
+                <!-- 按钮组 -->
+                <div class="btn-group">
+                  <button class="btn-primary">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    确认接单（08:30-10:00）
+                  </button>
+                  <div class="btn-secondary-row">
+                    <button class="btn-secondary">
+                      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                      改派时间
+                    </button>
+                    <button class="btn-secondary danger">
+                      <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                      退回工单
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 状态2：改派时间弹窗 ===== -->
+      <dc-artboard id="modal-reschedule" label="②改派时间" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="detail-bg">
+              <div class="detail-header">
+                <div class="detail-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+                <div class="detail-status">待接单</div>
+                <div class="detail-order-no">工单号：HR202609144281</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-card-title">工单信息</div>
+                <div class="detail-row"><span class="detail-label">报修单位</span><span class="detail-value">上林卫生院</span></div>
+                <div class="detail-row"><span class="detail-label">设备类型</span><span class="detail-value">打印机</span></div>
+              </div>
+            </div>
+
+            <div class="modal-mask">
+              <div class="modal">
+                <div class="modal-handle"></div>
+
+                <div class="reschedule-header">
+                  <div class="reschedule-back"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+                  <div class="reschedule-title">改派时间</div>
+                  <div class="reschedule-placeholder"></div>
+                </div>
+
+                <!-- 日期选择 -->
+                <div class="time-section-title">选择日期</div>
+                <div class="date-scroll">
+                  <div class="date-item today">
+                    <div class="date-item-week">今天</div>
+                    <div class="date-item-day">15</div>
+                  </div>
+                  <div class="date-item">
+                    <div class="date-item-week">周三</div>
+                    <div class="date-item-day">16</div>
+                  </div>
+                  <div class="date-item active">
+                    <div class="date-item-week">周四</div>
+                    <div class="date-item-day">17</div>
+                  </div>
+                  <div class="date-item">
+                    <div class="date-item-week">周五</div>
+                    <div class="date-item-day">18</div>
+                  </div>
+                  <div class="date-item">
+                    <div class="date-item-week">周六</div>
+                    <div class="date-item-day">19</div>
+                  </div>
+                  <div class="date-item">
+                    <div class="date-item-week">周日</div>
+                    <div class="date-item-day">20</div>
+                  </div>
+                </div>
+
+                <!-- 时段选择 -->
+                <div class="time-section-title">选择时段</div>
+                <div class="time-grid">
+                  <div class="time-slot">
+                    <div class="time-slot-period">上午早</div>
+                    <div class="time-slot-range">08:30-10:00</div>
+                  </div>
+                  <div class="time-slot selected">
+                    <div class="time-slot-period">上午</div>
+                    <div class="time-slot-range">10:00-11:30</div>
+                  </div>
+                  <div class="time-slot disabled">
+                    <div class="time-slot-period">下午早</div>
+                    <div class="time-slot-range">13:30-15:00</div>
+                  </div>
+                  <div class="time-slot">
+                    <div class="time-slot-period">下午</div>
+                    <div class="time-slot-range">15:00-16:30</div>
+                  </div>
+                  <div class="time-slot disabled">
+                    <div class="time-slot-period">下午晚</div>
+                    <div class="time-slot-range">16:30-18:00</div>
+                  </div>
+                </div>
+
+                <!-- 改派原因 -->
+                <div class="reschedule-reason">
+                  <div class="reschedule-reason-label">改派原因（选填）</div>
+                  <div class="reason-tags">
+                    <span class="reason-tag active">时段冲突</span>
+                    <span class="reason-tag">距离较远</span>
+                    <span class="reason-tag">需要备件</span>
+                    <span class="reason-tag">其他</span>
+                  </div>
+                </div>
+
+                <div class="btn-group">
+                  <button class="btn-primary">
+                    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                    确认改派（9月17日 10:00-11:30）
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+      <!-- ===== 状态3：退回工单确认 ===== -->
+      <dc-artboard id="modal-reject" label="③退回确认" width="390" height="844" chromeless>
+        <ios-device width="390" height="844">
+          <div class="page">
+            <div class="detail-bg">
+              <div class="detail-header">
+                <div class="detail-status">待接单</div>
+                <div class="detail-order-no">工单号：HR202609144281</div>
+              </div>
+              <div class="detail-card">
+                <div class="detail-card-title">工单信息</div>
+                <div class="detail-row"><span class="detail-label">报修单位</span><span class="detail-value">上林卫生院</span></div>
+              </div>
+            </div>
+
+            <div class="modal-mask">
+              <div class="modal" style="border-radius:20px;margin:auto 20px;max-height:60%;">
+                <div class="modal-handle"></div>
+                <div class="reject-icon">
+                  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                </div>
+                <div class="modal-title">确认退回工单？</div>
+                <div class="reject-text">
+                  退回后工单将返回调度池，由其他工程师接单。<br>
+                  <strong>上林卫生院 · 打印机维修</strong><br>
+                  预约时段：9月14日 08:30-10:00
+                </div>
+
+                <div class="reschedule-reason">
+                  <div class="reschedule-reason-label">退回原因</div>
+                  <div class="reason-tags">
+                    <span class="reason-tag active">无法按时到达</span>
+                    <span class="reason-tag">技能不匹配</span>
+                    <span class="reason-tag">距离过远</span>
+                    <span class="reason-tag">其他</span>
+                  </div>
+                </div>
+
+                <div class="btn-secondary-row" style="margin-top:8px;">
+                  <button class="btn-secondary" style="flex:1;">取消</button>
+                  <button class="btn-secondary danger" style="flex:1;background:#F53F3F;color:#fff;">
+                    确认退回
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ios-device>
+      </dc-artboard>
+
+    </dc-section>
+  </design-canvas>
+</div>
+
+</body>
+</html>
+<!-- （注：内容由AI生成） -->

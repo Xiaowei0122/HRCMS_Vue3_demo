@@ -1,10 +1,10 @@
 """操作日志路由"""
 from fastapi import APIRouter, Depends, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user, require_permission
 from app.core.response import success, paginate
 
-router = APIRouter(prefix="/logs", tags=["操作日志"], dependencies=[Depends(require_user_types("admin", "internal"))])
+router = APIRouter(prefix="/logs", tags=["操作日志"], dependencies=[Depends(require_permission("system:logs"))])
 
 
 @router.get("")

@@ -1,9 +1,9 @@
 <template>
   <div class="contact-config-container">
-    <el-alert 
-      title="配置说明：此处设置的信息将直接展示在微信公众号的“联系我们”页面，请确保信息的准确性与专业性。" 
-      type="warning" 
-      show-icon 
+    <el-alert
+      title="配置说明：此处设置的信息将直接展示在微信公众号的“联系我们”页面，请确保信息的准确性与专业性。"
+      type="warning"
+      show-icon
       :closable="false"
       style="margin-bottom: 20px;"
     />
@@ -25,7 +25,7 @@
               <div class="info">
                 <div class="name-row">
                   <span class="name">{{ item.name }}</span>
-                  <el-switch v-model="item.showOnMobile" size="small" active-text="展示" />
+                  <el-switch v-model="item.showOnMobile" size="small" active-text="展示" @change="toggleShow(item)" />
                 </div>
                 <div class="phone"><el-icon><Phone /></el-icon> {{ item.phone }}</div>
                 <div class="tags">
@@ -46,26 +46,34 @@
     </el-card>
 
     <!-- 配置弹窗 -->
-    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑工程师信息' : '添加工程师'" width="500px" append-to-body>
-      <el-form :model="form" label-width="100px" label-position="left">
-        <el-form-item label="头像上传">
-          <el-upload class="avatar-uploader" action="#" :show-file-list="false">
-            <img v-if="form.avatar" :src="form.avatar" class="upload-preview" />
-            <el-icon v-else class="uploader-icon"><Plus /></el-icon>
-          </el-upload>
+    <el-dialog v-model="dialogVisible" :title="isEdit ? '编辑展示信息' : '添加展示工程师'" width="500px" append-to-body>
+      <el-form :model="form" label-width="90px" label-position="left">
+        <el-form-item v-if="!isEdit" label="选择工程师">
+          <el-select v-model="form.id" filterable placeholder="从工程师角色用户中选择" style="width: 100%" @change="onCandidateSelect">
+            <el-option v-for="c in candidates" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="姓名">
-          <el-input v-model="form.name" placeholder="展示给客户的名称" />
+        <el-form-item v-if="isEdit" label="姓名">
+          <el-input v-model="form.name" disabled />
         </el-form-item>
-        <el-form-item label="联系电话">
-          <el-input v-model="form.phone" placeholder="手机号，支持一键拨号" />
+        <el-form-item v-if="isEdit" label="联系电话">
+          <el-input v-model="form.phone" disabled />
+        </el-form-item>
+        <el-form-item label="头像 URL">
+          <el-input v-model="form.avatar" placeholder="头像图片链接" />
         </el-form-item>
         <el-form-item label="擅长领域">
           <el-select v-model="form.skills" multiple filterable allow-create default-first-option placeholder="请输入并回车添加标签">
-            <el-option label="变压器维修" value="变压器维修" />
-            <el-option label="电路排查" value="电路排查" />
-            <el-option label="弱电系统" value="弱电系统" />
+            <el-option label="门禁维修" value="门禁维修" />
+            <el-option label="网络调试" value="网络调试" />
+            <el-option label="车牌识别" value="车牌识别" />
+            <el-option label="道闸维修" value="道闸维修" />
+            <el-option label="人脸识别" value="人脸识别" />
+            <el-option label="软件调试" value="软件调试" />
           </el-select>
+        </el-form-item>
+        <el-form-item label="所属团队">
+          <el-input v-model="form.team" placeholder="例如：维保一组" />
         </el-form-item>
         <el-form-item label="简介">
           <el-input v-model="form.desc" type="textarea" placeholder="一句话简介，如：10年行业经验，精通各类复杂电路" />
@@ -84,8 +92,8 @@ import { ref, onMounted } from 'vue'
 import { Plus, Phone } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  getContactEngineers, createContactEngineer,
-  updateContactEngineer, deleteContactEngineer
+  getContactEngineers, getContactEngineerCandidates,
+  createContactEngineer, updateContactEngineer, deleteContactEngineer
 } from '@/api/modules/contact'
 
 const dialogVisible = ref(false)
@@ -93,8 +101,9 @@ const isEdit = ref(false)
 const loading = ref(false)
 
 const engineerList = ref([])
+const candidates = ref([])
 
-const form = ref({ name: '', phone: '', skills: [], avatar: '', desc: '' })
+const form = ref({ id: '', name: '', phone: '', skills: [], avatar: '', desc: '', team: '', showOnMobile: true })
 
 const fetchEngineers = async () => {
   loading.value = true
@@ -110,29 +119,80 @@ const fetchEngineers = async () => {
   }
 }
 
+const fetchCandidates = async () => {
+  try {
+    const res = await getContactEngineerCandidates()
+    candidates.value = Array.isArray(res) ? res : (res.records || [])
+  } catch { /* ignore */ }
+}
+
 const openAddDialog = () => {
   isEdit.value = false
-  form.value = { name: '', phone: '', skills: [], avatar: '', desc: '' }
+  form.value = { id: '', name: '', phone: '', skills: [], avatar: '', desc: '', team: '', showOnMobile: true }
+  fetchCandidates()
   dialogVisible.value = true
+}
+
+const onCandidateSelect = (id) => {
+  const c = candidates.value.find((x) => x.id === id)
+  if (c) {
+    form.value.name = c.name
+    form.value.phone = c.phone
+  }
 }
 
 const editEngineer = (item) => {
   isEdit.value = true
-  form.value = { ...item }
+  form.value = {
+    id: item.id,
+    name: item.name,
+    phone: item.phone,
+    skills: item.skills || [],
+    avatar: item.avatar || '',
+    desc: item.desc || '',
+    team: item.team || '',
+    showOnMobile: item.showOnMobile !== false
+  }
   dialogVisible.value = true
 }
 
 const saveEngineer = async () => {
   try {
     if (isEdit.value) {
-      await updateContactEngineer(form.value.id, { ...form.value })
+      await updateContactEngineer(form.value.id, {
+        avatar: form.value.avatar,
+        skills: form.value.skills,
+        desc: form.value.desc,
+        team: form.value.team,
+        showOnMobile: form.value.showOnMobile
+      })
     } else {
-      await createContactEngineer({ ...form.value })
+      if (!form.value.id) {
+        ElMessage.warning('请选择工程师')
+        return
+      }
+      await createContactEngineer({
+        id: form.value.id,
+        avatar: form.value.avatar,
+        skills: form.value.skills,
+        desc: form.value.desc,
+        team: form.value.team
+      })
     }
     ElMessage.success('配置已同步至公众号展示端')
     dialogVisible.value = false
     fetchEngineers()
   } catch { /* ignore */ }
+}
+
+const toggleShow = async (item) => {
+  try {
+    await updateContactEngineer(item.id, { showOnMobile: item.showOnMobile })
+    ElMessage.success(item.showOnMobile ? '已开启展示' : '已关闭展示')
+  } catch {
+    item.showOnMobile = !item.showOnMobile
+    fetchEngineers()
+  }
 }
 
 const removeEngineer = (item) => {
@@ -167,9 +227,4 @@ onMounted(() => {
 .tags { display: flex; flex-wrap: wrap; gap: 5px; }
 
 .card-footer { background: #fafafa; padding: 10px; text-align: center; border-top: 1px solid #f0f0f0; }
-
-/* 上传样式 */
-.avatar-uploader { border: 1px dashed #d9d9d9; border-radius: 6px; cursor: pointer; width: 100px; height: 100px; line-height: 100px; text-align: center; }
-.upload-preview { width: 100px; height: 100px; border-radius: 6px; object-fit: cover; }
-.uploader-icon { font-size: 28px; color: #8c939d; }
 </style>

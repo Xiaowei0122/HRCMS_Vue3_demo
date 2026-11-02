@@ -41,6 +41,13 @@ export function createAsset(data) {
   return request.post('/finance/assets', data)
 }
 
+/** POST /finance/assets/import (multipart) */
+export function importAssets(formData) {
+  return request.post('/finance/assets/import', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
 /** PUT /finance/assets/:id */
 export function updateAsset(id, data) {
   return request.put(`/finance/assets/${id}`, data)
@@ -64,4 +71,66 @@ export function getMaintenanceRecords(id) {
 /** POST /finance/assets/:id/maintenance */
 export function addMaintenanceRecord(id, data) {
   return request.post(`/finance/assets/${id}/maintenance`, data)
+}
+
+// ==================== 车辆管理 ====================
+
+/** GET /finance/vehicles?status=&department=&kw=&page=&size= */
+export function getVehicleList(params) {
+  return request.get('/finance/vehicles', { params })
+}
+
+/** GET /finance/vehicles/expiring?days= */
+export function getVehicleExpiring(params) {
+  return request.get('/finance/vehicles/expiring', { params })
+}
+
+/** GET /finance/vehicles/:id */
+export function getVehicleDetail(id) {
+  return request.get(`/finance/vehicles/${id}`)
+}
+
+/** POST /finance/vehicles */
+export function createVehicle(data) {
+  return request.post('/finance/vehicles', data)
+}
+
+/** PUT /finance/vehicles/:id */
+export function updateVehicle(id, data) {
+  return request.put(`/finance/vehicles/${id}`, data)
+}
+
+/** DELETE /finance/vehicles/:id */
+export function deleteVehicle(id) {
+  return request.delete(`/finance/vehicles/${id}`)
+}
+
+/** POST /finance/vehicles/:id/insurances */
+export function addInsurance(id, data) {
+  return request.post(`/finance/vehicles/${id}/insurances`, data)
+}
+
+/** PUT /finance/vehicles/:id/insurances/:insId */
+export function updateInsurance(id, insId, data) {
+  return request.put(`/finance/vehicles/${id}/insurances/${insId}`, data)
+}
+
+/** DELETE /finance/vehicles/:id/insurances/:insId */
+export function deleteInsurance(id, insId) {
+  return request.delete(`/finance/vehicles/${id}/insurances/${insId}`)
+}
+
+/** POST /finance/vehicles/:id/maintenance */
+export function addVehicleMaintenance(id, data) {
+  return request.post(`/finance/vehicles/${id}/maintenance`, data)
+}
+
+/** DELETE /finance/vehicles/:id/maintenance/:mId */
+export function deleteVehicleMaintenance(id, mId) {
+  return request.delete(`/finance/vehicles/${id}/maintenance/${mId}`)
+}
+
+/** PUT /finance/vehicles/:id/inspection */
+export function updateVehicleInspection(id, data) {
+  return request.put(`/finance/vehicles/${id}/inspection`, data)
 }

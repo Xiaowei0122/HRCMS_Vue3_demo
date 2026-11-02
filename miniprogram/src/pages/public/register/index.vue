@@ -23,7 +23,7 @@
           class="input-field"
           v-model="form.username"
           placeholder="用于登录的用户名（4-20位）"
-          placeholder-style="color: #94A3B8"
+          placeholder-style="color: #C9CDD4"
           maxlength="20"
         />
       </view>
@@ -34,7 +34,7 @@
           class="input-field"
           v-model="form.realName"
           placeholder="您的真实姓名"
-          placeholder-style="color: #94A3B8"
+          placeholder-style="color: #C9CDD4"
           maxlength="20"
         />
       </view>
@@ -46,7 +46,7 @@
           v-model="form.phone"
           type="number"
           placeholder="用于联系您的手机号"
-          placeholder-style="color: #94A3B8"
+          placeholder-style="color: #C9CDD4"
           maxlength="11"
         />
       </view>
@@ -58,7 +58,7 @@
           v-model="form.password"
           type="password"
           placeholder="6-20位登录密码"
-          placeholder-style="color: #94A3B8"
+          placeholder-style="color: #C9CDD4"
           maxlength="20"
         />
       </view>
@@ -70,7 +70,7 @@
           v-model="form.confirmPassword"
           type="password"
           placeholder="再次输入密码"
-          placeholder-style="color: #94A3B8"
+          placeholder-style="color: #C9CDD4"
           maxlength="20"
         />
       </view>
@@ -159,47 +159,69 @@ const goLogin = () => uni.navigateBack()
 <style lang="scss" scoped>
 .register-page {
   min-height: 100vh;
-  background: #F8FAFC;
+  background: #F5F7FA;
 }
 
 .reg-header {
-  background: #0F172A;
+  background: linear-gradient(135deg, #165DFF 0%, #4080FF 60%, #5B8DEF 100%);
   padding: 24rpx 32rpx;
   padding-top: calc(88rpx + env(safe-area-inset-top));
+  padding-bottom: 72rpx;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+.reg-header::before {
+  content: '';
+  position: absolute;
+  top: -120rpx;
+  right: -100rpx;
+  width: 360rpx;
+  height: 360rpx;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.12) 0%, transparent 70%);
+  border-radius: 50%;
 }
 
 .back-btn {
-  width: 60rpx;
-  height: 60rpx;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #fff;
+  position: relative;
+  z-index: 1;
 }
 
 .header-title {
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 600;
   color: #FFFFFF;
+  position: relative;
+  z-index: 1;
 }
 
 .placeholder {
-  width: 60rpx;
+  width: 64rpx;
 }
 
 .reg-card {
-  margin: 24rpx;
+  margin: -48rpx 24rpx 24rpx;
   background: #FFFFFF;
-  border-radius: 20rpx;
-  padding: 36rpx 32rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.06);
+  border-radius: 32rpx;
+  padding: 40rpx 32rpx;
+  box-shadow: 0 -8rpx 60rpx rgba(22, 93, 255, 0.1);
+  position: relative;
+  z-index: 2;
 }
 
 .card-desc {
   font-size: 26rpx;
-  color: #64748B;
+  color: #86909C;
   display: block;
   margin-bottom: 32rpx;
 }
@@ -210,32 +232,33 @@ const goLogin = () => uni.navigateBack()
 
 .input-label {
   font-size: 26rpx;
-  color: #334155;
+  color: #4E5969;
   font-weight: 500;
-  margin-bottom: 8rpx;
+  margin-bottom: 12rpx;
   display: block;
 }
 
 .required {
-  color: #DC2626;
+  color: #F53F3F;
 }
 
 .input-field {
   width: 100%;
-  height: 80rpx;
-  background: #F1F5F9;
-  border-radius: 12rpx;
-  padding: 0 20rpx;
+  height: 88rpx;
+  background: #F7F8FA;
+  border: 1.5px solid #E5E6EB;
+  border-radius: 16rpx;
+  padding: 0 24rpx;
   font-size: 28rpx;
-  color: #020617;
+  color: #1D2129;
   box-sizing: border-box;
 }
 
 .btn-register {
   width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: #0F172A;
+  height: 92rpx;
+  line-height: 92rpx;
+  background: linear-gradient(135deg, #165DFF, #4080FF);
   color: #FFFFFF;
   font-size: 30rpx;
   font-weight: 600;
@@ -243,18 +266,20 @@ const goLogin = () => uni.navigateBack()
   border-radius: 50rpx;
   margin-top: 16rpx;
   text-align: center;
+  box-shadow: 0 12rpx 32rpx rgba(22, 93, 255, 0.3);
   transition: all 0.25s ease;
 
   &:active {
     transform: scale(0.97);
   }
   &[disabled] {
-    background: #94A3B8;
+    background: #C9CDD4;
+    box-shadow: none;
   }
 }
 
 .btn-loading {
-  background: #64748B !important;
+  background: #86909C !important;
 }
 
 .reg-footer {
@@ -262,10 +287,10 @@ const goLogin = () => uni.navigateBack()
   justify-content: center;
   margin-top: 24rpx;
   font-size: 26rpx;
-  color: #64748B;
+  color: #86909C;
 
   .link {
-    color: #0369A1;
+    color: #165DFF;
     margin-left: 8rpx;
   }
 }

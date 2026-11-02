@@ -5,7 +5,12 @@ export function getContactEngineers() {
   return request.get('/contact/engineers')
 }
 
-/** POST /contact/engineers */
+/** GET /contact/candidates — 所有工程师用户（用于联动筛选） */
+export function getContactEngineerCandidates() {
+  return request.get('/contact/candidates')
+}
+
+/** POST /contact/engineers  { id, avatar, skills, desc, team } */
 export function createContactEngineer(data) {
   return request.post('/contact/engineers', data)
 }

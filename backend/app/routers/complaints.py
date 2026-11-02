@@ -4,12 +4,13 @@ from bson import ObjectId
 from fastapi import APIRouter, Body, Depends
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from app.core.deps import get_db, get_current_user, require_user_types
+from app.core.deps import get_db, get_current_user, require_permission
 from app.core.response import success, error, paginate
+from app.services import notify
 
 router = APIRouter(prefix="/complaints", tags=["投诉管理"])
 
-_manage = Depends(require_user_types("admin", "internal"))
+_manage = Depends(require_permission("complaints"))
 
 
 @router.get("")
@@ -70,6 +71,14 @@ async def create_complaint(
         "customer": user.get("realName", user.get("username", "")),
     }
     result = await db.complaints.insert_one(doc)
+    await notify.push_notify(
+        db,
+        type_="complaint_new",
+        title="新增投诉建议",
+        content=f"{doc.get('customer', '')} 提交了投诉：{doc.get('content', '')[:40]}",
+        link="/after_sales/complaints",
+        role_codes=["operation", "business", "admin", "super_admin"],
+    )
     return success({"id": str(result.inserted_id)}, "投诉提交成功")
 
 
